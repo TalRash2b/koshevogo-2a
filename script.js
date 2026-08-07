@@ -6,7 +6,7 @@ let isLoading = false;
 
 // 1. Загрузка данных
 async function loadDataFromGoogleSheets() {
-    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
+    const url = `https://docs.google.comspreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
     
     showLoadingStatus('Загрузка данных из таблицы...');
     
@@ -35,7 +35,7 @@ async function loadDataFromGoogleSheets() {
     }
 }
 
-// 2. Парсер — без дублей, просто собирает данные из таблицы
+// 2. Парсер — собирает данные, ОБЪЕДИНЯЕТ дубли по квартирам
 function parseGoogleJson(jsonData) {
     houseDatabase = {}; 
     
@@ -45,6 +45,7 @@ function parseGoogleJson(jsonData) {
     }
     
     const rows = jsonData.table.rows;
+    const tempData = {}; // Временное хранилище
 
     for (let i = 0; i < rows.length; i++) {
         const rowData = rows[i];
@@ -76,42 +77,49 @@ function parseGoogleJson(jsonData) {
         
         if (aptNum < 1 || aptNum > 88) continue;
 
-        if (!houseDatabase[aptNum]) {
-            houseDatabase[aptNum] = [];
+        // === НОВАЯ ЛОГИКА: объединяем дубли ===
+        if (!tempData[aptNum]) {
+            tempData[aptNum] = {
+                names: [],
+                phones: []
+            };
         }
 
         // Разбиваем имена
         const namesArray = rawNames.split(/,|\bи\b/).map(n => n.trim()).filter(n => n);
+        tempData[aptNum].names.push(...namesArray);
 
         // Вытягиваем все телефоны
         const allPhones = extractAllPhones(rawPhone);
+        tempData[aptNum].phones.push(...allPhones);
+    }
 
-        // === НОВАЯ ЛОГИКА: правильное сопоставление ===
-        if (namesArray.length === 1 && allPhones.length > 1) {
+    // === ОБЪЕДИНЯЕМ ДАННЫЕ ПО КВАРТИРАМ ===
+    for (const aptNum in tempData) {
+        const data = tempData[aptNum];
+        
+        // Убираем дубли имён
+        const uniqueNames = [...new Set(data.names)];
+        // Убираем дубли телефонов
+        const uniquePhones = [...new Set(data.phones)];
+
+        houseDatabase[aptNum] = [];
+
+        // Сопоставляем имена и телефоны
+        if (uniqueNames.length === 1 && uniquePhones.length > 1) {
             // Один человек — несколько телефонов
             houseDatabase[aptNum].push({
-                fio: namesArray[0],
-                phones: allPhones
+                fio: uniqueNames[0],
+                phones: uniquePhones
             });
         } else {
             // Несколько человек
-            namesArray.forEach((name, index) => {
-                // Берём телефон по индексу, если есть
-                let phone = allPhones[index] || '';
-                // Если телефонов больше, чем людей — раздаём по одному
-                if (allPhones.length > namesArray.length && index === namesArray.length - 1) {
-                    // Последнему человеку отдаём все оставшиеся телефоны
-                    const remainingPhones = allPhones.slice(index);
-                    houseDatabase[aptNum].push({
-                        fio: name,
-                        phones: remainingPhones
-                    });
-                } else {
-                    houseDatabase[aptNum].push({
-                        fio: name,
-                        phones: phone ? [phone] : []
-                    });
-                }
+            uniqueNames.forEach((name, index) => {
+                const phone = uniquePhones[index] || '';
+                houseDatabase[aptNum].push({
+                    fio: name,
+                    phones: phone ? [phone] : []
+                });
             });
         }
     }
@@ -125,7 +133,6 @@ function extractAllPhones(phoneStr) {
     
     let str = phoneStr.trim();
     
-    // Если есть разделители — разбиваем
     if (str.includes(',') || str.includes(';') || str.includes(' и ')) {
         const parts = str.split(/[,;]\s*|\s+и\s+/).map(p => p.trim()).filter(p => p);
         const result = [];
