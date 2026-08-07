@@ -326,3 +326,14 @@ header p {
     
     .panel-drag-handle { display: none; }
 }
+
+/* Фикс для цвета телефонов на мобилках */
+.res-phone,
+.res-phone:visited,
+.res-phone:hover,
+.res-phone:active {
+    color: #38bdf8 !important; /* Или любой другой цвет, который хочешь */
+    text-decoration: none;
+}
+
+/* Если хочешь именно красный — замени на #ef4444 */
