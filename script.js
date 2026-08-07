@@ -4,12 +4,10 @@ const SPREADSHEET_ID = '15O63umHMD-ghB3CQ7iPPKKESqkEFLzzy3BgauZQOzMs';
 let houseDatabase = {};
 let isLoading = false;
 
-// 1. Загрузка данных из Google Sheets через оригинальный JSON фид
+// 1. Загрузка данных из Google Sheets
 async function loadDataFromGoogleSheets() {
-    // ИСПРАВЛЕННЫЙ URL
     const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
     
-    // Показываем статус загрузки
     showLoadingStatus('Загрузка данных из таблицы...');
     
     try {
@@ -18,7 +16,6 @@ async function loadDataFromGoogleSheets() {
         
         const text = await response.text();
         
-        // Вырезаем чистый JSON из служебной обертки Google
         const jsonStart = text.indexOf("{");
         const jsonEnd = text.lastIndexOf("}") + 1;
         if (jsonStart === -1 || jsonEnd === 0) throw new Error('Не найден JSON в ответе');
@@ -34,12 +31,11 @@ async function loadDataFromGoogleSheets() {
         console.error('Ошибка загрузки данных:', error);
         hideLoadingStatus();
         showNotification('❌ Ошибка загрузки: ' + error.message, 'error');
-        // Показываем заглушку с демо-данными
         loadDemoData();
     }
 }
 
-// 2. Парсер ячеек
+// 2. Парсер ячеек (улучшенный)
 function parseGoogleJson(jsonData) {
     houseDatabase = {}; 
     
@@ -62,19 +58,17 @@ function parseGoogleJson(jsonData) {
             return '';
         };
 
-        const timestamp = getVal(c[0]);
         const rawNames = getVal(c[1]);  // Колонка B: ФИО
         const rawApt = getVal(c[2]);    // Колонка C: № квартиры
         const rawPhone = getVal(c[3]);  // Колонка D: Телефон
 
-        // Пропускаем пустые строки
         if (!rawNames.trim() || !rawApt.trim()) continue;
 
-        const aptNumMatch = rawApt.match(/\d+/);
+        // Улучшенный парсинг номера квартиры — убираем всё кроме цифр
+        const aptNumMatch = rawApt.replace(/\s/g, '').match(/\d+/);
         if (!aptNumMatch) continue; 
         const aptNum = parseInt(aptNumMatch[0]);
         
-        // Проверяем, что квартира в допустимом диапазоне (1-88)
         if (aptNum < 1 || aptNum > 88) continue;
 
         if (!houseDatabase[aptNum]) {
@@ -84,19 +78,15 @@ function parseGoogleJson(jsonData) {
         // Разделяем имена (через запятую или "и")
         const namesArray = rawNames.split(/,|\bи\b/).map(n => n.trim()).filter(n => n);
         
-        // Разделяем телефоны
-        const phonesArray = rawPhone.split(/,|\s+/).map(p => p.trim()).filter(p => p.length > 3);
+        // Улучшенный парсинг телефонов — собираем все цифры в один номер
+        let phone = cleanPhoneFormat(rawPhone);
 
-        namesArray.forEach((cleanName, index) => {
+        namesArray.forEach((cleanName) => {
             if (!cleanName) return;
-
-            let phone = phonesArray[index] || phonesArray[0] || "";
-            phone = cleanPhoneFormat(phone);
 
             houseDatabase[aptNum].push({
                 fio: cleanName,
-                phone: phone,
-                meta: timestamp ? `📅 ${timestamp}` : ''
+                phone: phone
             });
         });
     }
@@ -104,24 +94,36 @@ function parseGoogleJson(jsonData) {
     console.log(`✅ Загружено ${Object.keys(houseDatabase).length} квартир с данными`);
 }
 
+// 3. Улучшенная очистка телефона
 function cleanPhoneFormat(phoneStr) {
+    // Убираем все пробелы, тире, скобки — оставляем только цифры и плюс
     let cleaned = phoneStr.trim().replace(/[^\d+]/g, '');
-    if (cleaned.length === 9 && !cleaned.startsWith('+')) {
+    
+    // Если номер начинается с 29, 33, 44 и т.д. — добавляем +375
+    if (cleaned.match(/^\d{9}$/)) {
         cleaned = '+375' + cleaned;
     }
+    // Если номер начинается с 8 (международный формат) — заменяем на +375
+    if (cleaned.match(/^8\d{10}$/)) {
+        cleaned = '+375' + cleaned.substring(1);
+    }
+    // Если номер начинается с 80 (две цифры после 8) — тоже чистим
+    if (cleaned.match(/^80\d{9}$/)) {
+        cleaned = '+375' + cleaned.substring(2);
+    }
+    
     return cleaned;
 }
 
-// 3. Демо-данные для офлайн-режима
+// 4. Демо-данные для офлайн-режима
 function loadDemoData() {
     houseDatabase = {};
-    // Несколько тестовых квартир
     const demo = {
-        15: [{ fio: 'Иванов Иван', phone: '+375291234567', meta: '📅 Демо-запись' }],
-        23: [{ fio: 'Петрова Анна', phone: '+375297654321', meta: '📅 Демо-запись' }],
-        34: [{ fio: 'Сидоров Сергей', phone: '+375336789012', meta: '📅 Демо-запись' }],
-        56: [{ fio: 'Козлова Екатерина', phone: '+375447890123', meta: '📅 Демо-запись' }],
-        67: [{ fio: 'Морозов Дмитрий', phone: '+375298901234', meta: '📅 Демо-запись' }],
+        15: [{ fio: 'Иванов Иван', phone: '+375291234567' }],
+        23: [{ fio: 'Петрова Анна', phone: '+375297654321' }],
+        34: [{ fio: 'Сидоров Сергей', phone: '+375336789012' }],
+        56: [{ fio: 'Козлова Екатерина', phone: '+375447890123' }],
+        67: [{ fio: 'Морозов Дмитрий', phone: '+375298901234' }],
     };
     
     Object.assign(houseDatabase, demo);
@@ -129,7 +131,7 @@ function loadDemoData() {
     showNotification('ℹ️ Показаны демо-данные (таблица недоступна)', 'info');
 }
 
-// 4. Отрисовка дома
+// 5. Отрисовка дома
 function buildHouseGrid(containerId, startingApt, entranceId) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -155,10 +157,11 @@ function buildHouseGrid(containerId, startingApt, entranceId) {
             const residents = houseDatabase[aptNumber] || [];
             const isEmpty = residents.length === 0;
 
+            // Без ключа — просто серое окно если пусто
             aptDiv.className = `apartment ${isEmpty ? 'empty' : ''}`;
             
-            // Показываем номер квартиры и количество жильцов
-            const labelText = isEmpty ? '🗝️' : `${residents.length} чел.`;
+            // Показываем количество жильцов или ничего
+            const labelText = isEmpty ? '' : `${residents.length} чел.`;
             
             aptDiv.innerHTML = `
                 <div class="apt-num">${aptNumber}</div>
@@ -174,7 +177,7 @@ function buildHouseGrid(containerId, startingApt, entranceId) {
     }
 }
 
-// 5. Информационная панель
+// 6. Информационная панель (обновлена)
 const infoPanel = document.getElementById('infoPanel');
 const darkOverlay = document.getElementById('overlay');
 
@@ -188,8 +191,7 @@ function openInfoPanel(aptNum, floor, entrance, residents) {
         container.innerHTML = `
             <div style="color: #94a3b8; text-align:center; padding-top:30px;">
                 <div style="font-size: 3rem; margin-bottom: 10px;">🏠</div>
-                Нет ответов от жильцов этой квартиры.
-                <br><span style="font-size: 0.8rem;">Станьте первым!</span>
+                Жильцы этой квартиры не предоставили свои данные
             </div>
         `;
     } else {
@@ -198,14 +200,13 @@ function openInfoPanel(aptNum, floor, entrance, residents) {
             const isShortName = person.fio.trim().split(/\s+/).length === 1;
             card.className = `resident-card ${isShortName ? 'no-name' : ''}`;
 
-            let phoneField = person.phone 
+            let phoneField = person.phone && person.phone.length > 5
                 ? `<a href="tel:${person.phone.replace(/\s+/g, '')}" class="res-phone">📞 ${person.phone}</a>` 
                 : `<span style="color: #64748b; font-size: 0.9rem;">🚫 Нет телефона</span>`;
 
             card.innerHTML = `
                 <div class="res-name">${person.fio}</div>
                 ${phoneField}
-                ${person.meta ? `<div class="res-meta">${person.meta}</div>` : ''}
             `;
             container.appendChild(card);
         });
@@ -227,7 +228,7 @@ function closeInfoPanel() {
 document.getElementById('closeBtn').addEventListener('click', closeInfoPanel);
 darkOverlay.addEventListener('click', closeInfoPanel);
 
-// 6. Переключение подъездов
+// 7. Переключение подъездов
 function switchEntrance(entranceNum) {
     document.querySelectorAll('.entrance').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -235,13 +236,13 @@ function switchEntrance(entranceNum) {
     document.getElementById(`tab${entranceNum}`).classList.add('active');
 }
 
-// 7. Инициализация дома
+// 8. Инициализация дома
 function initHouse() {
     buildHouseGrid('entrance1', 1, 1);
     buildHouseGrid('entrance2', 45, 2);
 }
 
-// 8. Обработка ресайза
+// 9. Обработка ресайза
 window.addEventListener('resize', () => {
     if (window.innerWidth >= 768) {
         document.getElementById('entrance1').classList.add('active');
@@ -252,7 +253,7 @@ window.addEventListener('resize', () => {
     }
 });
 
-// 9. Вспомогательные функции для UI
+// 10. Вспомогательные функции для UI
 function showLoadingStatus(text) {
     let status = document.getElementById('loadingStatus');
     if (!status) {
@@ -314,9 +315,7 @@ styleSheet.textContent = `
 `;
 document.head.appendChild(styleSheet);
 
-// 10. Запуск!
-// Добавляем кнопку обновления в интерфейс
-const header = document.querySelector('header');
+// 11. Кнопка обновления
 const refreshBtn = document.createElement('button');
 refreshBtn.innerHTML = '🔄';
 refreshBtn.style.cssText = `
@@ -332,5 +331,5 @@ refreshBtn.onmouseout = () => refreshBtn.style.transform = 'scale(1)';
 refreshBtn.onclick = () => loadDataFromGoogleSheets();
 document.body.appendChild(refreshBtn);
 
-// Запускаем загрузку
+// 12. Запуск!
 loadDataFromGoogleSheets();
