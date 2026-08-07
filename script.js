@@ -1,59 +1,50 @@
-// === НАСТРОЙКА: ID вашей Google Таблицы ===
-const SPREADSHEET_ID = '15O63umHMD-ghB3CQ7iPPKKESqkEFLzzy3BgauZQOzMs'; 
+// === НАСТРОЙКА: Ссылка на опубликованный CSV-фид вашей таблицы ===
+const TARGET_URL = 'https://google.com';
 
 let houseDatabase = {};
 
-// 1. Загрузка данных из Google Sheets через JSON фид
+// 1. Загрузка данных из опубликованного CSV
 async function loadDataFromGoogleSheets() {
-    const url = `https://google.com{SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
-    
     try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Сбой сети');
+        const response = await fetch(TARGET_URL);
+        if (!response.ok) throw new Error('Сбой сети при запросе к Google');
         
-        const text = await response.text();
+        const csvText = await response.text();
         
-        // Вырезаем чистый JSON из служебной обертки Google
-        const jsonString = text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1);
-        const jsonData = JSON.parse(jsonString);
-        
-        parseGoogleJson(jsonData);
+        // Защитная проверка: если Google вместо данных отдал html-страницу с ошибкой
+        if (csvText.includes('<!DOCTYPE html>') || csvText.includes('<html')) {
+            throw new Error('Google вернул HTML вместо CSV данных');
+        }
+
+        parseFormCSV(csvText);
         initHouse();
     } catch (error) {
         console.error('Ошибка загрузки данных:', error);
-        alert('Не удалось загрузить данные из таблицы. Пожалуйста, обновите страницу.');
+        alert('Не удалось загрузить данные из таблицы. Пожалуйста, обновите страницу через Ctrl+F5.');
     }
 }
 
-// 2. Безопасный парсер JSON с проверкой структуры ячеек
-function parseGoogleJson(jsonData) {
+// 2. Сверхнадежный парсер CSV строк
+function parseFormCSV(csvText) {
+    const lines = csvText.split(/\r?\n/);
     houseDatabase = {}; 
-    
-    if (!jsonData || !jsonData.table || !jsonData.table.rows) return;
-    const rows = jsonData.table.rows;
 
-    // Пропускаем строку заголовков (индекс 0) и идем по ответам
-    for (let i = 1; i < rows.length; i++) {
-        const rowData = rows[i];
-        if (!rowData || !rowData.c) continue;
-        const c = rowData.c;
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
 
-        // Вспомогательная функция для безопасного извлечения текста из ячейки
-        const getVal = (cell) => {
-            if (!cell) return '';
-            if (cell.f !== undefined && cell.f !== null) return String(cell.f);
-            if (cell.v !== undefined && cell.v !== null) return String(cell.v);
-            return '';
-        };
+        // Разбиваем строчку по запятым, корректно игнорируя разделители внутри кавычек
+        const row = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(val => val.replace(/^"|"$/g, '').trim());
+        
+        if (row.length < 4) continue; // Пропускаем некорректные строки
 
-        const timestamp = getVal(c[0]);
-        const rawNames = getVal(c[1]);  // Колонка B: ФИО
-        const rawApt = getVal(c[2]);    // Колонка C: № квартиры
-        const rawPhone = getVal(c[3]);  // Колонка D: Телефон
+        const rawNames = row[1] || '';  // Колонка B: ФИО
+        const rawApt = row[2] || '';    // Колонка C: № квартиры
+        const rawPhone = row[3] || '';  // Колонка D: Телефон
 
         if (!rawNames || !rawApt) continue;
 
-        // Вытаскиваем только цифры номера квартиры
+        // Извлекаем исключительно цифры из ячейки квартиры
         const aptNumMatch = rawApt.match(/\d+/);
         if (!aptNumMatch) continue; 
         const aptNum = parseInt(aptNumMatch);
@@ -62,7 +53,7 @@ function parseGoogleJson(jsonData) {
             houseDatabase[aptNum] = [];
         }
 
-        // Разделяем соседей, если их вписали в одну строку через запятую или "и"
+        // Разделяем жильцов, если их вписали в одну ячейку через запятую или "и"
         const namesArray = rawNames.split(/,|\bи\b/);
         const phonesArray = rawPhone.split(/,|\s+/).filter(p => p.trim().length > 3);
 
@@ -76,13 +67,13 @@ function parseGoogleJson(jsonData) {
             houseDatabase[aptNum].push({
                 fio: cleanName,
                 phone: phone,
-                meta: timestamp ? `Запись от: ${timestamp}` : ''
+                meta: row[0] ? `Запись от: ${row[0]}` : '' // Отметка времени заполнения формы
             });
         });
     }
 }
 
-// Форматирование номера телефона под единый стандарт
+// Форматирование номера телефона под единый стандарт (+375...)
 function cleanPhoneFormat(phoneStr) {
     let cleaned = phoneStr.trim().replace(/[^\d+]/g, '');
     if (cleaned.length === 9 && !cleaned.startsWith('+')) {
@@ -122,7 +113,7 @@ function handleSearch() {
     });
 }
 
-// 4. Отрисовка дома (11 -> 1 этаж, по 4 квартиры)
+// 4. Отрисовка фасада дома
 function buildHouseGrid(containerId, startingApt, entranceId) {
     const container = document.getElementById(containerId);
     container.innerHTML = `<div class="entrance-title">${entranceId} Подъезд</div>`; 
@@ -214,6 +205,7 @@ function switchEntrance(entranceNum) {
     document.getElementById(`tab${entranceNum}`).classList.add('active');
 }
 
+// Старт инициализации
 function initHouse() {
     buildHouseGrid('entrance1', 1, 1);
     buildHouseGrid('entrance2', 45, 2);
@@ -229,5 +221,5 @@ window.addEventListener('resize', () => {
     }
 });
 
-// ЗАПУСК СЕТЕВОГО ЗАПРОСА
+// Запускаем скачивание из сети при старте страницы
 loadDataFromGoogleSheets();
