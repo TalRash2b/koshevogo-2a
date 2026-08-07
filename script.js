@@ -20,6 +20,9 @@ async function loadDataFromGoogleSheets() {
         renderBuilding();
         hideLoadingStatus();
         updateHeader();
+        
+        // Принудительно применяем мобильный режим при загрузке
+        applyMobileFix();
     } catch (error) {
         console.error(error);
         hideLoadingStatus();
@@ -91,28 +94,31 @@ function formatPhone(phone) {
     return cleaned;
 }
 
-// 4. Подсчёт заполненных квартир и обновление шапки
+// 4. Обновление шапки (без эмодзи, крупнее шрифт)
 function updateHeader() {
     const filled = Object.keys(houseDatabase).length;
     const total = 88;
     const header = document.querySelector('header p');
     if (header) {
-        header.textContent = `📊 Заполнено ${filled} из ${total} квартир`;
+        header.textContent = `Заполнено ${filled} из ${total} квартир`;
+        header.style.fontSize = '1.2rem';
+        header.style.fontWeight = 'bold';
+        header.style.color = '#f8fafc';
     }
 }
 
 // 5. Состояние ошибки (без демо-данных)
 function showErrorState() {
-    // Показываем все окна пустыми
     houseDatabase = {};
     renderBuilding();
     updateHeader();
     
-    // Показываем сообщение в шапке
     const header = document.querySelector('header p');
     if (header) {
-        header.textContent = '❌ Данные не загружены. Попробуйте обновить страницу.';
+        header.textContent = 'Данные не загружены. Попробуйте обновить страницу.';
         header.style.color = '#ef4444';
+        header.style.fontSize = '1.2rem';
+        header.style.fontWeight = 'bold';
     }
     
     showNotification('❌ Не удалось загрузить данные', 'error');
@@ -122,6 +128,9 @@ function showErrorState() {
 function renderBuilding() {
     buildEntrance('entrance1', 1, 1);
     buildEntrance('entrance2', 45, 2);
+    
+    // Применяем мобильный фикс после отрисовки
+    setTimeout(applyMobileFix, 50);
 }
 
 function buildEntrance(containerId, startApt, entranceNum) {
@@ -240,29 +249,59 @@ function switchEntrance(num) {
     // Показываем только выбранный подъезд
     document.querySelectorAll('.entrance').forEach(el => el.classList.remove('active'));
     document.getElementById(`entrance${num}`).classList.add('active');
+    
+    // Применяем фикс для мобильных
+    applyMobileFix();
 }
 
-// 10. Ресайз (ПК — два подъезда, мобильные — один)
-window.addEventListener('resize', () => {
+// 10. Критический фикс для мобильных: скрываем второй подъезд полностью
+function applyMobileFix() {
     const isMobile = window.innerWidth < 768;
     
-    if (!isMobile) {
-        // На ПК показываем оба подъезда
-        document.querySelectorAll('.entrance').forEach(el => el.classList.add('active'));
-        // Скрываем табы на ПК
-        document.querySelector('.tabs-container').style.display = 'flex';
-    } else {
-        // На мобильных — только активный таб
+    if (isMobile) {
+        // На мобильных — показываем только активный подъезд
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab) {
             const num = activeTab.id === 'tab1' ? 1 : 2;
-            document.querySelectorAll('.entrance').forEach(el => el.classList.remove('active'));
-            document.getElementById(`entrance${num}`).classList.add('active');
+            document.querySelectorAll('.entrance').forEach(el => {
+                el.classList.remove('active');
+                el.style.display = 'none'; // Полностью скрываем
+            });
+            const activeEntrance = document.getElementById(`entrance${num}`);
+            if (activeEntrance) {
+                activeEntrance.classList.add('active');
+                activeEntrance.style.display = 'flex'; // Показываем только активный
+            }
         }
+    } else {
+        // На ПК — показываем оба
+        document.querySelectorAll('.entrance').forEach(el => {
+            el.classList.add('active');
+            el.style.display = 'flex';
+        });
     }
+}
+
+// 11. Ресайз (ПК — два подъезда, мобильные — один)
+window.addEventListener('resize', () => {
+    applyMobileFix();
 });
 
-// 11. UI-функции
+// 12. Убираем "Интерактивная модель дома" из шапки
+function removeSubtitle() {
+    const header = document.querySelector('header');
+    if (header) {
+        const p = header.querySelector('p');
+        if (p && !p.textContent.includes('Заполнено')) {
+            // Если это старый подзаголовок — удаляем
+            if (p.textContent === 'Интерактивная модель дома' || p.textContent === '') {
+                p.remove();
+            }
+        }
+    }
+}
+
+// 13. UI-функции
 function showLoadingStatus(text) {
     let el = document.getElementById('loadingStatus');
     if (!el) {
@@ -303,5 +342,6 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// 12. Запуск!
+// 14. Запуск!
+removeSubtitle();
 loadDataFromGoogleSheets();
