@@ -1,5 +1,5 @@
 // === НАСТРОЙКА: Ссылка на опубликованный CSV-фид вашей таблицы ===
-const TARGET_URL = 'https://google.com';
+const TARGET_URL = 'https://corsproxy.io';
 
 let houseDatabase = {};
 
