@@ -1,0 +1,328 @@
+:root {
+    --bg-color: #0f172a;
+    --panel-bg: #1e293b;
+    --floor-bg: #334155;
+    --apt-occupied: #0284c7; /* Голубой вместо зеленого */
+    --apt-empty: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent: #38bdf8; /* Яркий неоновый голубой */
+    --card-bg: #2d3748;
+}
+
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    -webkit-tap-highlight-color: transparent; /* Убираем синий блик при клике на мобильных */
+}
+
+body { 
+    background-color: var(--bg-color); 
+    color: var(--text-main); 
+    padding: 10px; 
+    min-height: 100vh; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    overflow-x: hidden;
+}
+
+header { 
+    text-align: center; 
+    margin: 10px 0 15px 0; 
+}
+
+header h1 { 
+    font-size: 1.8rem; 
+    color: var(--accent); 
+}
+
+header p { 
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* Навигация по подъездам (Табы) */
+.tabs-container {
+    display: flex;
+    width: 100%;
+    max-width: 500px;
+    background: var(--panel-bg);
+    padding: 5px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border: 1px solid #475569;
+}
+
+.tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    padding: 10px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+    background: var(--accent);
+    color: var(--bg-color);
+}
+
+/* Сетка дома */
+.building-container { 
+    display: flex; 
+    gap: 20px; 
+    width: 100%; 
+    max-width: 1200px; 
+    justify-content: center; 
+}
+
+/* Подъезды */
+.entrance { 
+    display: flex; 
+    flex-direction: column; 
+    background: var(--panel-bg); 
+    padding: 15px; 
+    border-radius: 12px; 
+    border: 2px solid #475569; 
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); 
+    width: 100%;
+    max-width: 450px;
+}
+
+.entrance-title { 
+    text-align: center; 
+    font-size: 1.2rem; 
+    font-weight: bold; 
+    margin-bottom: 10px; 
+    color: var(--accent); 
+    border-bottom: 2px solid #475569; 
+    padding-bottom: 8px; 
+}
+
+/* Этажи */
+.floor { 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+    padding: 6px 0; 
+    border-bottom: 1px dashed #475569; 
+}
+
+.floor:last-child { 
+    border-bottom: none; 
+}
+
+.floor-number { 
+    width: 25px; 
+    font-weight: bold; 
+    color: var(--text-muted); 
+    text-align: center; 
+    font-size: 0.85rem; 
+}
+
+.apartments { 
+    display: flex; 
+    gap: 8px; 
+    flex-grow: 1;
+    justify-content: space-between;
+}
+
+/* Квартиры */
+.apartment { 
+    flex: 1;
+    height: 46px; 
+    background-color: var(--apt-occupied); 
+    border-radius: 6px; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer; 
+    transition: transform 0.1s ease, border-color 0.2s ease; 
+    border: 2px solid transparent; 
+}
+
+.apartment:active { 
+    transform: scale(0.95); 
+}
+
+.apartment.empty { 
+    background-color: var(--apt-empty); 
+}
+
+.apt-num { 
+    font-weight: bold; 
+    font-size: 0.95rem; 
+}
+
+.apt-count { 
+    font-size: 0.65rem; 
+    color: rgba(255,255,255,0.8); 
+}
+
+.apartment.empty .apt-count { 
+    color: #94a3b8; 
+}
+
+/* Адаптивная шторка информации (Снизу на мобильных, сбоку на ПК) */
+.info-panel { 
+    position: fixed; 
+    left: 0;
+    bottom: -100%; /* Прячется вниз */
+    width: 100vw; 
+    height: 75vh; /* На мобильных открывается на 3/4 экрана */
+    background: #1e293b; 
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.7); 
+    transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1), right 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+    z-index: 100; 
+    padding: 20px 20px 30px 20px; 
+    display: flex; 
+    flex-direction: column; 
+    border-top: 4px solid var(--accent); 
+    border-radius: 20px 20px 0 0;
+}
+
+.info-panel.active { 
+    bottom: 0; 
+}
+
+/* Полоска сверху шторки для красоты на мобильных */
+.panel-drag-handle {
+    width: 40px;
+    height: 4px;
+    background: #475569;
+    border-radius: 2px;
+    margin: -10px auto 15px auto;
+}
+
+.close-btn { 
+    position: absolute; 
+    top: 15px; 
+    right: 20px; 
+    background: none; 
+    border: none; 
+    color: var(--text-muted); 
+    font-size: 1.8rem; 
+    cursor: pointer; 
+}
+
+.panel-header { 
+    margin-bottom: 20px; 
+}
+
+.panel-title { 
+    font-size: 1.6rem; 
+    color: var(--accent); 
+}
+
+.panel-subtitle { 
+    color: var(--text-muted); 
+    font-size: 0.85rem; 
+    margin-top: 3px; 
+}
+
+/* Карточки жильцов */
+.residents-list { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 12px; 
+    overflow-y: auto; 
+    flex-grow: 1; 
+}
+
+.resident-card { 
+    background: var(--card-bg); 
+    padding: 14px; 
+    border-radius: 8px; 
+    border-left: 4px solid var(--accent); /* Тоже голубой маркер */
+}
+
+.resident-card.no-name { 
+    border-left-color: #38bdf8;
+    opacity: 0.9;
+}
+
+.res-name { 
+    font-weight: bold; 
+    font-size: 1.05rem; 
+    margin-bottom: 4px; 
+}
+
+.res-phone { 
+    color: var(--accent); 
+    font-size: 0.95rem; 
+    display: flex; 
+    align-items: center; 
+    gap: 5px; 
+    text-decoration: none; 
+}
+
+.res-meta { 
+    margin-top: 6px; 
+    font-size: 0.8rem; 
+    color: var(--text-muted); 
+}
+
+/* Заднее затемнение */
+.overlay { 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100vw; 
+    height: 100vh; 
+    background: rgba(15, 23, 42, 0.7); 
+    backdrop-filter: blur(4px); 
+    display: none; 
+    z-index: 99; 
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.overlay.active { 
+    display: block; 
+    opacity: 1;
+}
+
+/* --- АДАПТИВНОСТЬ ДЛЯ БОЛЬШИХ ЭКРАНОВ (ПК) --- */
+@media (min-width: 768px) {
+    body { padding: 30px; }
+    header h1 { font-size: 2.3rem; }
+    
+    /* Скрываем переключатель табов на ПК, так как там видны оба подъезда сразу */
+    .tabs-container { display: none; }
+    
+    .entrance { display: flex !important; } /* Показываем оба подъезда */
+    
+    .apartment:hover { 
+        transform: scale(1.08); 
+        border-color: var(--accent); 
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); 
+    }
+    
+    /* На ПК шторка превращается в классическую боковую панель */
+    .info-panel {
+        left: auto;
+        right: -420px;
+        bottom: 0;
+        width: 400px;
+        height: 100vh;
+        border-top: none;
+        border-left: 4px solid var(--accent);
+        border-radius: 0;
+        padding: 40px 30px;
+    }
+    
+    .info-panel.active {
+        right: 0;
+        bottom: 0;
+    }
+    
+    .panel-drag-handle { display: none; }
+}
