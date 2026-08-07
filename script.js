@@ -6,7 +6,8 @@ let isLoading = false;
 
 // 1. Загрузка данных
 async function loadDataFromGoogleSheets() {
-    const url = `https://docs.google.comspreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
+    // ИСПРАВЛЕННЫЙ URL
+    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
     
     showLoadingStatus('Загрузка данных из таблицы...');
     
