@@ -5,7 +5,7 @@ let houseDatabase = {};
 
 // 1. Загрузка данных из Google Sheets через оригинальный JSON фид
 async function loadDataFromGoogleSheets() {
-    const url = `https://google.com/{SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
+    const url = `https://google.com/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
     
     try {
         const response = await fetch(url);
