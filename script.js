@@ -1,97 +1,120 @@
-// === НАСТРОЙКА: ID вашей новой Google Таблицы ===
+// === НАСТРОЙКА: ID вашей Google Таблицы ===
 const SPREADSHEET_ID = '15O63umHMD-ghB3CQ7iPPKKESqkEFLzzy3BgauZQOzMs'; 
-const SHEET_NAME = 'Ответы на форму (1)'; // Имя вкладки из формы
 
-// Сюда загружаются обработанные данные
 let houseDatabase = {};
 
-// 1. Загрузка данных напрямую из Google Sheets (Формат CSV)
+// 1. Загрузка данных из Google Sheets
 async function loadDataFromGoogleSheets() {
-    // Обновленная ссылка: запрашиваем первый лист таблицы без жесткой привязки к имени
+    // Скачиваем первый лист в формате CSV напрямую
     const url = `https://google.com{SPREADSHEET_ID}/gviz/tq?tqx=out:csv`;
     try {
         const response = await fetch(url);
-        if (!response.ok) throw new Error('Сбой при загрузке');
+        if (!response.ok) throw new Error('Сбой сети');
         const csvText = await response.text();
         parseFormCSV(csvText);
         initHouse();
     } catch (error) {
         console.error('Ошибка:', error);
-        alert('Не удалось загрузить данные. Проверьте ID таблицы.');
+        alert('Ошибка при чтении таблицы. Пожалуйста, обновите страницу.');
     }
 }
 
-
-// 2. Парсер ответов Google Формы
+// 2. Неубиваемый парсер CSV
 function parseFormCSV(csvText) {
     const lines = csvText.split(/\r?\n/);
-    houseDatabase = {}; // Сброс базы данных
+    houseDatabase = {}; 
 
     for (let i = 1; i < lines.length; i++) {
-        if (!lines[i].trim()) continue;
+        const line = lines[i].trim();
+        if (!line) continue;
 
-        // Корректное разделение CSV строки с учетом кавычек
-        const matches = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(',');
-        const row = matches.map(val => val.replace(/^"|"$/g, '').trim());
+        // Корректно разбиваем строку, игнорируя запятые внутри кавычек
+        const row = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(val => val.replace(/^"|"$/g, '').trim());
+        
+        if (row.length < 4) continue; // Защита от пустых строк
 
-        if (row.length < 4) continue; // Пропускаем битые строки
+        const rawNames = row[1]; // Колонка B: ФИО
+        const rawApt = row[2];   // Колонка C: № квартиры
+        const rawPhone = row[3]; // Колонка D: Телефон
 
-        const rawNames = row[1];       // Колонка B: ФИО (может быть несколько имен)
-        const rawApt = row[2];         // Колонка C: Номер квартиры (текст или число)
-        const rawPhones = row[3];      // Колонка D: Телефоны
-
-        // Извлекаем только цифры номера квартиры (например, из "45кв, 1 этаж" вытащит 45)
+        // Достаем из колонки квартиры только цифры
         const aptNumMatch = rawApt.match(/\d+/);
-        if (!aptNumMatch) continue; // Если номер квартиры не найден, пропускаем строку
+        if (!aptNumMatch) continue; 
         const aptNum = parseInt(aptNumMatch[0]);
-
-        // Если в одну ячейку записали несколько человек (через запятую или союз "и")
-        const namesArray = rawNames.split(/,|\bи\b/);
-        // Если номеров тоже несколько
-        const phonesArray = rawPhones.split(/,|\s+/).filter(p => p.trim().length > 3);
 
         if (!houseDatabase[aptNum]) {
             houseDatabase[aptNum] = [];
         }
 
-        // Распределяем людей и телефоны по карточкам
+        // Чистим имена, если их записали несколько в одну ячейку (через запятую или союз "и")
+        const namesArray = rawNames.split(/,|\bи\b/);
+        const phonesArray = rawPhone.split(/,|\s+/).filter(p => p.trim().length > 3);
+
         namesArray.forEach((name, index) => {
             const cleanName = name.trim();
             if (!cleanName) return;
 
-            // Пробуем сопоставить телефон каждому человеку, либо отдаем первый доступный
             let phone = phonesArray[index] || phonesArray[0] || "";
             phone = cleanPhoneFormat(phone);
 
             houseDatabase[aptNum].push({
                 fio: cleanName,
                 phone: phone,
-                meta: `Запись от: ${row[0]}` // Добавляем отметку времени в карточку жильца
+                meta: `Запись от: ${row[0]}` // Добавляем дату заполнения формы
             });
         });
     }
 }
 
-// Вспомогательная функция для чистки формата телефона
+// Форматирование телефона
 function cleanPhoneFormat(phoneStr) {
-    let cleaned = phoneStr.trim().replace(/[^\d+]/g, ''); // убираем лишние символы кроме цифр и плюса
+    let cleaned = phoneStr.trim().replace(/[^\d+]/g, '');
     if (cleaned.length === 9 && !cleaned.startsWith('+')) {
-        cleaned = '+375' + cleaned; // добавляем код страны, если жильцы написали просто "29XXXXXXX"
+        cleaned = '+375' + cleaned;
     }
     return cleaned;
 }
 
-// 3. Функция построения сетки квартир сверху вниз (11 -> 1 этаж)
+// 3. Умный интерактивный поиск
+function handleSearch() {
+    const query = document.getElementById('searchInput').value.toLowerCase().trim();
+    const apartments = document.querySelectorAll('.apartment');
+
+    if (!query) {
+        apartments.forEach(apt => apt.classList.remove('highlight', 'fade'));
+        return;
+    }
+
+    apartments.forEach(apt => {
+        const aptNum = parseInt(apt.querySelector('.apt-num').innerText);
+        const residents = houseDatabase[aptNum] || [];
+        
+        const matchesApt = aptNum.toString().includes(query);
+        const matchesName = residents.some(r => r.fio.toLowerCase().includes(query));
+
+        if (matchesApt || matchesName) {
+            apt.classList.add('highlight');
+            apt.classList.remove('fade');
+            if (window.innerWidth < 768) {
+                if (aptNum <= 44) switchEntrance(1);
+                else switchEntrance(2);
+            }
+        } else {
+            apt.classList.remove('highlight');
+            apt.classList.add('fade');
+        }
+    });
+}
+
+// 4. Отрисовка дома
 function buildHouseGrid(containerId, startingApt, entranceId) {
     const container = document.getElementById(containerId);
     container.innerHTML = `<div class="entrance-title">${entranceId} Подъезд</div>`; 
-    
     let floorStartApt = startingApt + 40; 
 
     for (let currentFloor = 11; currentFloor >= 1; currentFloor--) {
         const floorRow = document.createElement('div');
         floorRow.className = 'floor';
-
         const label = document.createElement('div');
         label.className = 'floor-number';
         label.innerText = currentFloor;
@@ -103,7 +126,6 @@ function buildHouseGrid(containerId, startingApt, entranceId) {
         for (let i = 0; i < 4; i++) {
             const aptNumber = floorStartApt + i;
             const aptDiv = document.createElement('div');
-            
             const residents = houseDatabase[aptNumber] || [];
             const isEmpty = residents.length === 0;
 
@@ -118,7 +140,6 @@ function buildHouseGrid(containerId, startingApt, entranceId) {
             aptDiv.addEventListener('click', () => openInfoPanel(aptNumber, currentFloor, entranceId, residents));
             aptGrid.appendChild(aptDiv);
         }
-
         floorRow.appendChild(aptGrid);
         container.appendChild(floorRow);
         floorStartApt -= 4; 
@@ -131,7 +152,6 @@ const darkOverlay = document.getElementById('overlay');
 function openInfoPanel(aptNum, floor, entrance, residents) {
     document.getElementById('panelAptNum').innerText = `Квартира №${aptNum}`;
     document.getElementById('panelAptMeta').innerText = `Подъезд ${entrance}, Этаж ${floor}`;
-    
     const container = document.getElementById('residentsContainer');
     container.innerHTML = '';
 
@@ -155,7 +175,6 @@ function openInfoPanel(aptNum, floor, entrance, residents) {
             container.appendChild(card);
         });
     }
-
     darkOverlay.style.display = 'block';
     setTimeout(() => {
         darkOverlay.classList.add('active');
@@ -166,9 +185,7 @@ function openInfoPanel(aptNum, floor, entrance, residents) {
 function closeInfoPanel() {
     darkOverlay.classList.remove('active');
     infoPanel.classList.remove('active');
-    setTimeout(() => {
-        darkOverlay.style.display = 'none';
-    }, 200);
+    setTimeout(() => { darkOverlay.style.display = 'none'; }, 200);
 }
 
 document.getElementById('closeBtn').addEventListener('click', closeInfoPanel);
@@ -177,7 +194,6 @@ darkOverlay.addEventListener('click', closeInfoPanel);
 function switchEntrance(entranceNum) {
     document.querySelectorAll('.entrance').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    
     document.getElementById(`entrance${entranceNum}`).classList.add('active');
     document.getElementById(`tab${entranceNum}`).classList.add('active');
 }
@@ -197,5 +213,4 @@ window.addEventListener('resize', () => {
     }
 });
 
-// ТОЧКА ВХОДА: загрузка из сети
 loadDataFromGoogleSheets();
