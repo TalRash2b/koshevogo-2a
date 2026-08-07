@@ -19,16 +19,15 @@ async function loadDataFromGoogleSheets() {
         parseData(jsonData);
         renderBuilding();
         hideLoadingStatus();
-        showNotification('✅ Данные обновлены', 'success');
+        updateHeader();
     } catch (error) {
         console.error(error);
         hideLoadingStatus();
-        showNotification('❌ Ошибка загрузки', 'error');
-        loadDemoData();
+        showErrorState();
     }
 }
 
-// 2. Парсер данных (ИСПРАВЛЕН)
+// 2. Парсер данных
 function parseData(jsonData) {
     houseDatabase = {};
     
@@ -53,25 +52,20 @@ function parseData(jsonData) {
             houseDatabase[aptNum] = [];
         }
         
-        // Разбиваем имена
         const names = name.split(',').map(n => n.trim()).filter(n => n);
         
-        // Разбиваем телефоны
         let phones = [];
         if (phoneRaw) {
             phones = phoneRaw.split(/[,;\s]+/).map(p => p.trim()).filter(p => p.length > 3);
             phones = phones.map(p => formatPhone(p));
         }
         
-        // === НОВАЯ ЛОГИКА ===
         if (names.length === 1 && phones.length > 1) {
-            // Если имя одно, а телефонов несколько — отдаем все телефоны этому одному человеку
             houseDatabase[aptNum].push({
                 fio: names[0],
-                phones: phones // Все телефоны
+                phones: phones
             });
         } else {
-            // Если имен несколько — сопоставляем по порядку
             names.forEach((n, index) => {
                 const phone = phones[index] || '';
                 houseDatabase[aptNum].push({
@@ -81,8 +75,6 @@ function parseData(jsonData) {
             });
         }
     }
-    
-    console.log(`✅ Загружено ${Object.keys(houseDatabase).length} квартир`);
 }
 
 // 3. Форматирование телефона
@@ -99,20 +91,34 @@ function formatPhone(phone) {
     return cleaned;
 }
 
-// 4. Демо-данные
-function loadDemoData() {
-    houseDatabase = {
-        15: [{ fio: 'Иванов Иван', phones: ['+375291234567'] }],
-        23: [{ fio: 'Петрова Анна', phones: ['+375297654321'] }],
-        34: [{ fio: 'Сидоров Сергей', phones: ['+375336789012'] }],
-        56: [{ fio: 'Козлова Екатерина', phones: ['+375447890123'] }],
-        67: [{ fio: 'Морозов Дмитрий', phones: ['+375298901234'] }],
-    };
-    renderBuilding();
-    showNotification('ℹ️ Показаны демо-данные', 'info');
+// 4. Подсчёт заполненных квартир и обновление шапки
+function updateHeader() {
+    const filled = Object.keys(houseDatabase).length;
+    const total = 88;
+    const header = document.querySelector('header p');
+    if (header) {
+        header.textContent = `📊 Заполнено ${filled} из ${total} квартир`;
+    }
 }
 
-// 5. Отрисовка дома
+// 5. Состояние ошибки (без демо-данных)
+function showErrorState() {
+    // Показываем все окна пустыми
+    houseDatabase = {};
+    renderBuilding();
+    updateHeader();
+    
+    // Показываем сообщение в шапке
+    const header = document.querySelector('header p');
+    if (header) {
+        header.textContent = '❌ Данные не загружены. Попробуйте обновить страницу.';
+        header.style.color = '#ef4444';
+    }
+    
+    showNotification('❌ Не удалось загрузить данные', 'error');
+}
+
+// 6. Отрисовка дома
 function renderBuilding() {
     buildEntrance('entrance1', 1, 1);
     buildEntrance('entrance2', 45, 2);
@@ -159,7 +165,7 @@ function buildEntrance(containerId, startApt, entranceNum) {
     }
 }
 
-// 6. Информационная панель
+// 7. Информационная панель
 function showInfo(aptNum, floor, residents) {
     document.getElementById('panelAptNum').textContent = `Квартира №${aptNum}`;
     document.getElementById('panelAptMeta').textContent = `Этаж ${floor}`;
@@ -214,7 +220,7 @@ function showInfo(aptNum, floor, residents) {
     }, 10);
 }
 
-// 7. Закрытие панели
+// 8. Закрытие панели
 function closeInfo() {
     document.getElementById('overlay').classList.remove('active');
     document.getElementById('infoPanel').classList.remove('active');
@@ -226,29 +232,37 @@ function closeInfo() {
 document.getElementById('closeBtn').addEventListener('click', closeInfo);
 document.getElementById('overlay').addEventListener('click', closeInfo);
 
-// 8. Переключение подъездов
+// 9. Переключение подъездов (исправлено для мобильных)
 function switchEntrance(num) {
-    document.querySelectorAll('.entrance').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById(`entrance${num}`).classList.add('active');
     document.getElementById(`tab${num}`).classList.add('active');
+    
+    // Показываем только выбранный подъезд
+    document.querySelectorAll('.entrance').forEach(el => el.classList.remove('active'));
+    document.getElementById(`entrance${num}`).classList.add('active');
 }
 
-// 9. Ресайз
+// 10. Ресайз (ПК — два подъезда, мобильные — один)
 window.addEventListener('resize', () => {
-    if (window.innerWidth >= 768) {
-        document.getElementById('entrance1').classList.add('active');
-        document.getElementById('entrance2').classList.add('active');
+    const isMobile = window.innerWidth < 768;
+    
+    if (!isMobile) {
+        // На ПК показываем оба подъезда
+        document.querySelectorAll('.entrance').forEach(el => el.classList.add('active'));
+        // Скрываем табы на ПК
+        document.querySelector('.tabs-container').style.display = 'flex';
     } else {
+        // На мобильных — только активный таб
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab) {
             const num = activeTab.id === 'tab1' ? 1 : 2;
-            switchEntrance(num);
+            document.querySelectorAll('.entrance').forEach(el => el.classList.remove('active'));
+            document.getElementById(`entrance${num}`).classList.add('active');
         }
     }
 });
 
-// 10. UI-функции
+// 11. UI-функции
 function showLoadingStatus(text) {
     let el = document.getElementById('loadingStatus');
     if (!el) {
@@ -281,17 +295,13 @@ function showNotification(text, type) {
 
 // Добавляем анимацию
 const style = document.createElement('style');
-style.textContent = `@keyframes slideUp { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }`;
+style.textContent = `
+    @keyframes slideUp {
+        from { opacity:0; transform:translateX(-50%) translateY(20px); }
+        to { opacity:1; transform:translateX(-50%) translateY(0); }
+    }
+`;
 document.head.appendChild(style);
-
-// 11. Кнопка обновления
-const refreshBtn = document.createElement('button');
-refreshBtn.innerHTML = '🔄';
-refreshBtn.style.cssText = 'position:fixed;bottom:20px;right:20px;width:50px;height:50px;border-radius:50%;background:#38bdf8;color:#0f172a;border:none;font-size:1.5rem;cursor:pointer;z-index:50;box-shadow:0 4px 12px rgba(56,189,248,0.4);transition:transform 0.2s;';
-refreshBtn.onmouseover = () => refreshBtn.style.transform = 'scale(1.1)';
-refreshBtn.onmouseout = () => refreshBtn.style.transform = 'scale(1)';
-refreshBtn.onclick = loadDataFromGoogleSheets;
-document.body.appendChild(refreshBtn);
 
 // 12. Запуск!
 loadDataFromGoogleSheets();
