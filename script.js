@@ -36,7 +36,7 @@ async function loadDataFromGoogleSheets() {
     }
 }
 
-// 2. Главный парсер
+// 2. Главный парсер (исправлен — больше не пропускает первую строку)
 function parseGoogleJson(jsonData) {
     houseDatabase = {}; 
     
@@ -47,9 +47,15 @@ function parseGoogleJson(jsonData) {
     
     const rows = jsonData.table.rows;
 
-    for (let i = 1; i < rows.length; i++) {
+    // Проходим по ВСЕМ строкам, включая первую
+    for (let i = 0; i < rows.length; i++) {
         const rowData = rows[i];
         if (!rowData || !rowData.c) continue;
+        
+        // Проверяем, что это не шапка (если в первой колонке не "Отметка времени")
+        const firstCell = rowData.c[0];
+        if (firstCell && firstCell.v === "Отметка времени") continue;
+        
         const c = rowData.c;
 
         const getVal = (cell) => {
