@@ -1,41 +1,53 @@
-// === НАСТРОЙКА: Ссылка на опубликованную Google Таблицу ===
-const PUBLISHED_URL = 'https://google.com';
+// === НАСТРОЙКА: ID вашей Google Таблицы ===
+const SPREADSHEET_ID = '15O63umHMD-ghB3CQ7iPPKKESqkEFLzzy3BgauZQOzMs'; 
 
 let houseDatabase = {};
 
-// 1. Загрузка данных из опубликованного CSV фида
+// 1. Загрузка данных из Google Sheets через JSON фид
 async function loadDataFromGoogleSheets() {
+    // Используем стабильный формат получения JSON данных
+    const url = `https://google.com{SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
+    
     try {
-        const response = await fetch(PUBLISHED_URL);
-        if (!response.ok) throw new Error('Сбой сети при запросе к Google');
-        const csvText = await response.text();
-        parseFormCSV(csvText);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Сбой сети');
+        
+        const text = await response.text();
+        
+        // Google возвращает текст со служебной оберткой: google.visualization.Query.setResponse({...});
+        // Вырезаем чистый JSON изнутри скобок
+        const jsonString = text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1);
+        const jsonData = JSON.parse(jsonString);
+        
+        parseGoogleJson(jsonData);
         initHouse();
     } catch (error) {
-        console.error('Ошибка:', error);
-        alert('Ошибка при чтении таблицы. Пожалуйста, обновите страницу.');
+        console.error('Ошибка загрузки данных:', error);
+        alert('Не удалось загрузить данные из таблицы. Пожалуйста, обновите страницу.');
     }
 }
 
-// 2. Универсальный парсер CSV ответов формы
-function parseFormCSV(csvText) {
-    const lines = csvText.split(/\r?\n/);
+// 2. Парсер структурированного JSON от Google Таблицы
+function parseGoogleJson(jsonData) {
     houseDatabase = {}; 
+    const rows = jsonData.table.rows;
 
-    for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
+    if (!rows || rows.length === 0) return;
 
-        // Разбиваем строку по запятым, игнорируя запятые внутри кавычек
-        const row = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(val => val.replace(/^"|"$/g, '').trim());
-        
-        if (row.length < 4) continue; // Защита от коротких строк
+    // Пропускаем строку заголовков (индекс 0) и идем по ответам формы
+    for (let i = 1; i < rows.length; i++) {
+        const c = rows[i].c;
+        if (!c) continue;
 
-        const rawNames = row[1]; // Колонка B: ФИО
-        const rawApt = row[2];   // Колонка C: № квартиры
-        const rawPhone = row[3]; // Колонка D: Телефон
+        // Извлекаем данные из ячеек (учитываем возможные пустые поля через оператор ?)
+        const timestamp = c[0] ? c[0].v : '';
+        const rawNames = c[1] ? String(c[1].v) : ''; // Колонка B: ФИО
+        const rawApt = c[2] ? String(c[2].v) : '';   // Колонка C: № квартиры
+        const rawPhone = c[3] ? String(c[3].v) : ''; // Колонка D: Телефон
 
-        // Достаем из текста колонки квартиры только цифры
+        if (!rawNames || !rawApt) continue;
+
+        // Вытаскиваем только цифры номера квартиры
         const aptNumMatch = rawApt.match(/\d+/);
         if (!aptNumMatch) continue; 
         const aptNum = parseInt(aptNumMatch);
@@ -44,7 +56,7 @@ function parseFormCSV(csvText) {
             houseDatabase[aptNum] = [];
         }
 
-        // Разделяем имена, если в строку записали несколько человек через запятую или "и"
+        // Разделяем соседей, если их вписали в одну строку через запятую или "и"
         const namesArray = rawNames.split(/,|\bи\b/);
         const phonesArray = rawPhone.split(/,|\s+/).filter(p => p.trim().length > 3);
 
@@ -58,7 +70,7 @@ function parseFormCSV(csvText) {
             houseDatabase[aptNum].push({
                 fio: cleanName,
                 phone: phone,
-                meta: `Запись от: ${row[0]}` // Добавляем дату заполнения формы
+                meta: `Запись от: ${timestamp}`
             });
         });
     }
@@ -68,7 +80,7 @@ function parseFormCSV(csvText) {
 function cleanPhoneFormat(phoneStr) {
     let cleaned = phoneStr.trim().replace(/[^\d+]/g, '');
     if (cleaned.length === 9 && !cleaned.startsWith('+')) {
-        cleaned = '+375' + cleaned; // Дефолтный код для Беларуси
+        cleaned = '+375' + cleaned;
     }
     return cleaned;
 }
@@ -211,5 +223,5 @@ window.addEventListener('resize', () => {
     }
 });
 
-// СТАРТ
+// ЗАПУСК СЕТЕВОГО ЗАПРОСА
 loadDataFromGoogleSheets();
