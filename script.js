@@ -207,7 +207,7 @@ function showInfo(aptNum, floor, residents) {
                         link.className = 'res-phone';
                         link.style.display = 'block';
                         link.style.marginTop = '4px';
-                        link.textContent = `📞 ${phone}`;
+                        link.innerHTML = `<i class="fas fa-phone" style="color:#38bdf8;margin-right:6px;"></i> ${phone}`;
                         card.appendChild(link);
                     }
                 });
