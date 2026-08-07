@@ -7,22 +7,20 @@ let houseDatabase = {};
 
 // 1. Загрузка данных напрямую из Google Sheets (Формат CSV)
 async function loadDataFromGoogleSheets() {
-    const url = `https://google.com{SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
-    
+    // Обновленная ссылка: запрашиваем первый лист таблицы без жесткой привязки к имени
+    const url = `https://google.com{SPREADSHEET_ID}/gviz/tq?tqx=out:csv`;
     try {
         const response = await fetch(url);
-        if (!response.ok) throw new Error('Сбой при загрузке таблицы');
-        
+        if (!response.ok) throw new Error('Сбой при загрузке');
         const csvText = await response.text();
         parseFormCSV(csvText);
-        
-        // Строим интерактивный дом
         initHouse();
     } catch (error) {
-        console.error('Ошибка загрузки данных:', error);
-        alert('Не удалось загрузить данные. Проверьте, что в таблице открыт доступ по ссылке ("Все, у кого есть ссылка — Читатель").');
+        console.error('Ошибка:', error);
+        alert('Не удалось загрузить данные. Проверьте ID таблицы.');
     }
 }
+
 
 // 2. Парсер ответов Google Формы
 function parseFormCSV(csvText) {
