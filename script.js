@@ -2,34 +2,52 @@
 const SPREADSHEET_ID = '15O63umHMD-ghB3CQ7iPPKKESqkEFLzzy3BgauZQOzMs'; 
 
 let houseDatabase = {};
+let isLoading = false;
 
 // 1. Загрузка данных из Google Sheets через оригинальный JSON фид
 async function loadDataFromGoogleSheets() {
-    const url = "https://google.com" + SPREADSHEET_ID + "/gviz/tq?tqx=out:json";
+    // ИСПРАВЛЕННЫЙ URL
+    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
+    
+    // Показываем статус загрузки
+    showLoadingStatus('Загрузка данных из таблицы...');
     
     try {
         const response = await fetch(url);
-        if (!response.ok) throw new Error('Сбой сети');
+        if (!response.ok) throw new Error('Сбой сети: ' + response.status);
         
         const text = await response.text();
         
         // Вырезаем чистый JSON из служебной обертки Google
-        const jsonString = text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1);
+        const jsonStart = text.indexOf("{");
+        const jsonEnd = text.lastIndexOf("}") + 1;
+        if (jsonStart === -1 || jsonEnd === 0) throw new Error('Не найден JSON в ответе');
+        
+        const jsonString = text.substring(jsonStart, jsonEnd);
         const jsonData = JSON.parse(jsonString);
         
         parseGoogleJson(jsonData);
         initHouse();
+        hideLoadingStatus();
+        showNotification('✅ Данные обновлены!', 'success');
     } catch (error) {
         console.error('Ошибка загрузки данных:', error);
-        alert('Не удалось загрузить данные из таблицы. Пожалуйста, обновите страницу.');
+        hideLoadingStatus();
+        showNotification('❌ Ошибка загрузки: ' + error.message, 'error');
+        // Показываем заглушку с демо-данными
+        loadDemoData();
     }
 }
 
-// 2. Изначальный безопасный парсер ячеек
+// 2. Парсер ячеек
 function parseGoogleJson(jsonData) {
     houseDatabase = {}; 
     
-    if (!jsonData || !jsonData.table || !jsonData.table.rows) return;
+    if (!jsonData || !jsonData.table || !jsonData.table.rows) {
+        console.warn('Нет данных в таблице');
+        return;
+    }
+    
     const rows = jsonData.table.rows;
 
     for (let i = 1; i < rows.length; i++) {
@@ -49,21 +67,27 @@ function parseGoogleJson(jsonData) {
         const rawApt = getVal(c[2]);    // Колонка C: № квартиры
         const rawPhone = getVal(c[3]);  // Колонка D: Телефон
 
-        if (!rawNames || !rawApt) continue;
+        // Пропускаем пустые строки
+        if (!rawNames.trim() || !rawApt.trim()) continue;
 
         const aptNumMatch = rawApt.match(/\d+/);
         if (!aptNumMatch) continue; 
-        const aptNum = parseInt(aptNumMatch);
+        const aptNum = parseInt(aptNumMatch[0]);
+        
+        // Проверяем, что квартира в допустимом диапазоне (1-88)
+        if (aptNum < 1 || aptNum > 88) continue;
 
         if (!houseDatabase[aptNum]) {
             houseDatabase[aptNum] = [];
         }
 
-        const namesArray = rawNames.split(/,|\bи\b/);
-        const phonesArray = rawPhone.split(/,|\s+/).filter(p => p.trim().length > 3);
+        // Разделяем имена (через запятую или "и")
+        const namesArray = rawNames.split(/,|\bи\b/).map(n => n.trim()).filter(n => n);
+        
+        // Разделяем телефоны
+        const phonesArray = rawPhone.split(/,|\s+/).map(p => p.trim()).filter(p => p.length > 3);
 
-        namesArray.forEach((name, index) => {
-            const cleanName = name.trim();
+        namesArray.forEach((cleanName, index) => {
             if (!cleanName) return;
 
             let phone = phonesArray[index] || phonesArray[0] || "";
@@ -72,10 +96,12 @@ function parseGoogleJson(jsonData) {
             houseDatabase[aptNum].push({
                 fio: cleanName,
                 phone: phone,
-                meta: timestamp ? `Запись от: ${timestamp}` : ''
+                meta: timestamp ? `📅 ${timestamp}` : ''
             });
         });
     }
+    
+    console.log(`✅ Загружено ${Object.keys(houseDatabase).length} квартир с данными`);
 }
 
 function cleanPhoneFormat(phoneStr) {
@@ -86,15 +112,35 @@ function cleanPhoneFormat(phoneStr) {
     return cleaned;
 }
 
-// 3. Отрисовка дома (11 -> 1 этаж, по 4 квартиры)
+// 3. Демо-данные для офлайн-режима
+function loadDemoData() {
+    houseDatabase = {};
+    // Несколько тестовых квартир
+    const demo = {
+        15: [{ fio: 'Иванов Иван', phone: '+375291234567', meta: '📅 Демо-запись' }],
+        23: [{ fio: 'Петрова Анна', phone: '+375297654321', meta: '📅 Демо-запись' }],
+        34: [{ fio: 'Сидоров Сергей', phone: '+375336789012', meta: '📅 Демо-запись' }],
+        56: [{ fio: 'Козлова Екатерина', phone: '+375447890123', meta: '📅 Демо-запись' }],
+        67: [{ fio: 'Морозов Дмитрий', phone: '+375298901234', meta: '📅 Демо-запись' }],
+    };
+    
+    Object.assign(houseDatabase, demo);
+    initHouse();
+    showNotification('ℹ️ Показаны демо-данные (таблица недоступна)', 'info');
+}
+
+// 4. Отрисовка дома
 function buildHouseGrid(containerId, startingApt, entranceId) {
     const container = document.getElementById(containerId);
+    if (!container) return;
+    
     container.innerHTML = `<div class="entrance-title">${entranceId} Подъезд</div>`; 
     let floorStartApt = startingApt + 40; 
 
     for (let currentFloor = 11; currentFloor >= 1; currentFloor--) {
         const floorRow = document.createElement('div');
         floorRow.className = 'floor';
+        
         const label = document.createElement('div');
         label.className = 'floor-number';
         label.innerText = currentFloor;
@@ -110,7 +156,9 @@ function buildHouseGrid(containerId, startingApt, entranceId) {
             const isEmpty = residents.length === 0;
 
             aptDiv.className = `apartment ${isEmpty ? 'empty' : ''}`;
-            let labelText = isEmpty ? 'пусто' : `${residents.length} чел.`;
+            
+            // Показываем номер квартиры и количество жильцов
+            const labelText = isEmpty ? '🗝️' : `${residents.length} чел.`;
             
             aptDiv.innerHTML = `
                 <div class="apt-num">${aptNumber}</div>
@@ -126,6 +174,7 @@ function buildHouseGrid(containerId, startingApt, entranceId) {
     }
 }
 
+// 5. Информационная панель
 const infoPanel = document.getElementById('infoPanel');
 const darkOverlay = document.getElementById('overlay');
 
@@ -135,8 +184,14 @@ function openInfoPanel(aptNum, floor, entrance, residents) {
     const container = document.getElementById('residentsContainer');
     container.innerHTML = '';
 
-    if (residents.length === 0) {
-        container.innerHTML = '<div style="color: #94a3b8; text-align:center; padding-top:30px;">Нет ответов от жильцов этой квартиры.</div>';
+    if (!residents || residents.length === 0) {
+        container.innerHTML = `
+            <div style="color: #94a3b8; text-align:center; padding-top:30px;">
+                <div style="font-size: 3rem; margin-bottom: 10px;">🏠</div>
+                Нет ответов от жильцов этой квартиры.
+                <br><span style="font-size: 0.8rem;">Станьте первым!</span>
+            </div>
+        `;
     } else {
         residents.forEach(person => {
             const card = document.createElement('div');
@@ -150,11 +205,12 @@ function openInfoPanel(aptNum, floor, entrance, residents) {
             card.innerHTML = `
                 <div class="res-name">${person.fio}</div>
                 ${phoneField}
-                ${person.meta ? `<div class="res-meta">ℹ️ ${person.meta}</div>` : ''}
+                ${person.meta ? `<div class="res-meta">${person.meta}</div>` : ''}
             `;
             container.appendChild(card);
         });
     }
+    
     darkOverlay.style.display = 'block';
     setTimeout(() => {
         darkOverlay.classList.add('active');
@@ -171,6 +227,7 @@ function closeInfoPanel() {
 document.getElementById('closeBtn').addEventListener('click', closeInfoPanel);
 darkOverlay.addEventListener('click', closeInfoPanel);
 
+// 6. Переключение подъездов
 function switchEntrance(entranceNum) {
     document.querySelectorAll('.entrance').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -178,11 +235,13 @@ function switchEntrance(entranceNum) {
     document.getElementById(`tab${entranceNum}`).classList.add('active');
 }
 
+// 7. Инициализация дома
 function initHouse() {
     buildHouseGrid('entrance1', 1, 1);
     buildHouseGrid('entrance2', 45, 2);
 }
 
+// 8. Обработка ресайза
 window.addEventListener('resize', () => {
     if (window.innerWidth >= 768) {
         document.getElementById('entrance1').classList.add('active');
@@ -193,5 +252,85 @@ window.addEventListener('resize', () => {
     }
 });
 
-// Инициализация загрузки
+// 9. Вспомогательные функции для UI
+function showLoadingStatus(text) {
+    let status = document.getElementById('loadingStatus');
+    if (!status) {
+        status = document.createElement('div');
+        status.id = 'loadingStatus';
+        status.style.cssText = `
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: #1e293b; color: #f8fafc; padding: 12px 24px;
+            border-radius: 8px; z-index: 1000; border: 1px solid #475569;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        `;
+        document.body.appendChild(status);
+    }
+    status.textContent = text;
+    status.style.display = 'block';
+}
+
+function hideLoadingStatus() {
+    const status = document.getElementById('loadingStatus');
+    if (status) status.style.display = 'none';
+}
+
+function showNotification(text, type = 'info') {
+    const colors = {
+        success: '#10b981',
+        error: '#ef4444',
+        info: '#38bdf8'
+    };
+    
+    const notif = document.createElement('div');
+    notif.style.cssText = `
+        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+        background: #1e293b; color: #f8fafc; padding: 12px 24px;
+        border-radius: 8px; z-index: 1000; 
+        border-left: 4px solid ${colors[type] || '#38bdf8'};
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        animation: slideUp 0.3s ease;
+        max-width: 90%;
+        text-align: center;
+    `;
+    notif.textContent = text;
+    document.body.appendChild(notif);
+    
+    setTimeout(() => {
+        notif.style.opacity = '0';
+        notif.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => notif.remove(), 300);
+    }, 4000);
+}
+
+// Добавляем стили для анимации уведомлений
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+        to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+`;
+document.head.appendChild(styleSheet);
+
+// 10. Запуск!
+// Добавляем кнопку обновления в интерфейс
+const header = document.querySelector('header');
+const refreshBtn = document.createElement('button');
+refreshBtn.innerHTML = '🔄';
+refreshBtn.style.cssText = `
+    position: fixed; bottom: 20px; right: 20px;
+    width: 50px; height: 50px; border-radius: 50%;
+    background: #38bdf8; color: #0f172a; border: none;
+    font-size: 1.5rem; cursor: pointer; z-index: 50;
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4);
+    transition: transform 0.2s ease;
+`;
+refreshBtn.onmouseover = () => refreshBtn.style.transform = 'scale(1.1)';
+refreshBtn.onmouseout = () => refreshBtn.style.transform = 'scale(1)';
+refreshBtn.onclick = () => loadDataFromGoogleSheets();
+document.body.appendChild(refreshBtn);
+
+// Запускаем загрузку
 loadDataFromGoogleSheets();
