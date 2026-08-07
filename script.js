@@ -4,9 +4,9 @@ const SPREADSHEET_ID = '15O63umHMD-ghB3CQ7iPPKKESqkEFLzzy3BgauZQOzMs';
 let houseDatabase = {};
 let isLoading = false;
 
-// 1. Загрузка данных из Google Sheets
+// 1. Загрузка данных
 async function loadDataFromGoogleSheets() {
-    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
+    const url = `https://docs.google.comspreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
     
     showLoadingStatus('Загрузка данных из таблицы...');
     
@@ -35,7 +35,7 @@ async function loadDataFromGoogleSheets() {
     }
 }
 
-// 2. Парсер ячеек (улучшенный)
+// 2. Главный парсер
 function parseGoogleJson(jsonData) {
     houseDatabase = {}; 
     
@@ -64,10 +64,11 @@ function parseGoogleJson(jsonData) {
 
         if (!rawNames.trim() || !rawApt.trim()) continue;
 
-        // Улучшенный парсинг номера квартиры
-        const aptNumMatch = rawApt.replace(/\s/g, '').match(/\d+/);
-        if (!aptNumMatch) continue; 
-        const aptNum = parseInt(aptNumMatch[0]);
+        // ===== ВЫТЯГИВАЕМ ТОЛЬКО НОМЕР КВАРТИРЫ (убираем этаж и подъезд) =====
+        // Ищем ЧИСЛО от 1 до 88 (квартира) — первое подходящее число
+        const aptMatch = rawApt.match(/\b([1-9]|[1-7][0-9]|8[0-8])\b/);
+        if (!aptMatch) continue;
+        const aptNum = parseInt(aptMatch[0]);
         
         if (aptNum < 1 || aptNum > 88) continue;
 
@@ -75,101 +76,151 @@ function parseGoogleJson(jsonData) {
             houseDatabase[aptNum] = [];
         }
 
-        // Разделяем имена (через запятую или "и")
+        // ===== РАЗБИВАЕМ ИМЕНА =====
         const namesArray = rawNames.split(/,|\bи\b/).map(n => n.trim()).filter(n => n);
-        
-        // Разделяем телефоны (по пробелу, запятой или нескольким номерам подряд)
-        let phonesArray = extractPhones(rawPhone);
-        
-        // Если телефонов меньше чем имён — дополняем пустыми
-        while (phonesArray.length < namesArray.length) {
-            phonesArray.push('');
-        }
-        // Если телефонов больше чем имён — обрезаем
-        if (phonesArray.length > namesArray.length) {
-            phonesArray = phonesArray.slice(0, namesArray.length);
-        }
 
-        namesArray.forEach((cleanName, index) => {
-            if (!cleanName) return;
+        // ===== ВЫТЯГИВАЕМ ВСЕ ТЕЛЕФОНЫ ИЗ СТРОКИ =====
+        const allPhones = extractAllPhones(rawPhone);
 
-            let phone = phonesArray[index] || '';
-            phone = cleanPhoneFormat(phone);
-
+        // Сопоставляем имена и телефоны
+        if (namesArray.length === 1 && allPhones.length > 1) {
+            // Один человек — несколько телефонов
             houseDatabase[aptNum].push({
-                fio: cleanName,
-                phone: phone
+                fio: namesArray[0],
+                phones: allPhones
             });
-        });
+        } else {
+            // Несколько человек
+            namesArray.forEach((name, index) => {
+                const phone = allPhones[index] || '';
+                houseDatabase[aptNum].push({
+                    fio: name,
+                    phones: phone ? [phone] : []
+                });
+            });
+        }
     }
     
     console.log(`✅ Загружено ${Object.keys(houseDatabase).length} квартир с данными`);
 }
 
-// 3. Извлечение телефонов из строки
-function extractPhones(phoneStr) {
+// 3. ВЫТЯГИВАЕМ ВСЕ ТЕЛЕФОНЫ ИЗ ЛЮБОЙ СТРОКИ
+function extractAllPhones(phoneStr) {
     if (!phoneStr || !phoneStr.trim()) return [];
     
-    // Убираем лишние пробелы
     let str = phoneStr.trim();
     
-    // Если есть явные разделители (запятая, точка с запятой, "и")
+    // 1. Сначала пробуем разделить по явным разделителям
     if (str.includes(',') || str.includes(';') || str.includes(' и ')) {
-        return str.split(/[,;]\s*|\s+и\s+/).map(p => p.trim()).filter(p => p);
+        const parts = str.split(/[,;]\s*|\s+и\s+/).map(p => p.trim()).filter(p => p);
+        const result = [];
+        parts.forEach(part => {
+            // Из каждой части вытягиваем все номера
+            const phones = extractPhonesFromText(part);
+            result.push(...phones);
+        });
+        return result;
     }
     
-    // Ищем все номера по паттерну: +375, 8, или просто 9 цифр
-    const phoneRegex = /(?:\+375|8|80)?\s*\(?\d{2}\)?\s*\d{3}[\s-]?\d{2}[\s-]?\d{2}/g;
-    const matches = str.match(phoneRegex);
-    if (matches) {
-        return matches.map(p => p.trim());
-    }
-    
-    // Если номер один — возвращаем его
-    return [str];
+    // 2. Ищем все номера в тексте
+    return extractPhonesFromText(str);
 }
 
-// 4. Улучшенная очистка телефона
+// 4. Ищем номера в тексте (регулярка)
+function extractPhonesFromText(text) {
+    // Ищем номера: +375, 8, 80, или просто 9 цифр
+    const patterns = [
+        // +375XXXXXXXXX
+        /\+\s*375\s*\(?\d{2}\)?\s*\d{3}[\s-]?\d{2}[\s-]?\d{2}/g,
+        // 8XXXXXXXXXX (11 цифр после 8)
+        /8\s*\(?\d{2}\)?\s*\d{3}[\s-]?\d{2}[\s-]?\d{2}/g,
+        // 80XXXXXXXXX (10 цифр после 80)
+        /80\s*\(?\d{2}\)?\s*\d{3}[\s-]?\d{2}[\s-]?\d{2}/g,
+        // 375XXXXXXXXX (без плюса)
+        /375\s*\(?\d{2}\)?\s*\d{3}[\s-]?\d{2}[\s-]?\d{2}/g,
+        // Просто 9 цифр подряд (29, 33, 44 и т.д.)
+        /\b[0-9]{9}\b/g,
+        // Номера с пробелами: 29 123 45 67
+        /\b\d{2}\s+\d{3}\s+\d{2}\s+\d{2}\b/g,
+        /\b\d{2}\s+\d{3}\s+\d{2}\s+\d{2}\b/g,
+    ];
+    
+    let allMatches = [];
+    patterns.forEach(pattern => {
+        const matches = text.match(pattern);
+        if (matches) {
+            allMatches.push(...matches);
+        }
+    });
+    
+    // Если ничего не нашли — пытаемся разбить по пробелам
+    if (allMatches.length === 0) {
+        const parts = text.split(/\s+/).filter(p => p.length > 5);
+        if (parts.length > 0) {
+            return parts.map(p => cleanPhoneFormat(p)).filter(p => p);
+        }
+        return [];
+    }
+    
+    // Чистим и форматируем каждый номер
+    const unique = [...new Set(allMatches)];
+    return unique.map(p => cleanPhoneFormat(p)).filter(p => p);
+}
+
+// 5. ОЧИСТКА И ФОРМАТИРОВАНИЕ ТЕЛЕФОНА
 function cleanPhoneFormat(phoneStr) {
     if (!phoneStr) return '';
     
-    // Убираем все пробелы, тире, скобки — оставляем только цифры и плюс
+    // Убираем всё кроме цифр (плюс пока оставляем)
     let cleaned = phoneStr.trim().replace(/[^\d+]/g, '');
     
-    // Если есть знак +/- или ± — убираем и ставим +
+    // Если есть +/- или ± — заменяем на +
     if (phoneStr.includes('±') || phoneStr.includes('+/-') || phoneStr.includes('+-')) {
-        cleaned = cleaned.replace(/[^0-9]/g, '');
+        cleaned = '+' + cleaned.replace(/[^0-9]/g, '');
     }
     
-    // Если номер начинается с 29, 33, 44 и т.д. — добавляем +375
-    if (cleaned.match(/^\d{9}$/)) {
-        cleaned = '+375' + cleaned;
-    }
-    // Если номер начинается с 8 (международный формат) — заменяем на +375
-    if (cleaned.match(/^8\d{10}$/)) {
-        cleaned = '+375' + cleaned.substring(1);
-    }
-    // Если номер начинается с 80 (две цифры после 8) — тоже чистим
-    if (cleaned.match(/^80\d{9}$/)) {
-        cleaned = '+375' + cleaned.substring(2);
-    }
-    // Если номер начинается с 375 без плюса
-    if (cleaned.match(/^375\d{9}$/)) {
-        cleaned = '+' + cleaned;
+    // Если номер без плюса
+    if (!cleaned.startsWith('+')) {
+        // Если 9 цифр — +375
+        if (cleaned.length === 9) {
+            cleaned = '+375' + cleaned;
+        }
+        // Если 10 цифр и начинается с 8
+        else if (cleaned.length === 10 && cleaned.startsWith('8')) {
+            cleaned = '+375' + cleaned.substring(1);
+        }
+        // Если 11 цифр и начинается с 80
+        else if (cleaned.length === 11 && cleaned.startsWith('80')) {
+            cleaned = '+375' + cleaned.substring(2);
+        }
+        // Если 12 цифр и начинается с 375
+        else if (cleaned.length === 12 && cleaned.startsWith('375')) {
+            cleaned = '+' + cleaned;
+        }
+        // Если 12 цифр и начинается с 8
+        else if (cleaned.length === 12 && cleaned.startsWith('8')) {
+            cleaned = '+375' + cleaned.substring(1);
+        }
     }
     
-    return cleaned;
+    // Проверяем формат +375XXXXXXXXX
+    if (cleaned.match(/^\+375\d{9}$/)) {
+        return cleaned;
+    }
+    
+    // Если не похоже на телефон — возвращаем как есть
+    return phoneStr.trim();
 }
 
-// 5. Демо-данные
+// 6. Демо-данные
 function loadDemoData() {
     houseDatabase = {};
     const demo = {
-        15: [{ fio: 'Иванов Иван', phone: '+375291234567' }],
-        23: [{ fio: 'Петрова Анна', phone: '+375297654321' }],
-        34: [{ fio: 'Сидоров Сергей', phone: '+375336789012' }],
-        56: [{ fio: 'Козлова Екатерина', phone: '+375447890123' }],
-        67: [{ fio: 'Морозов Дмитрий', phone: '+375298901234' }],
+        15: [{ fio: 'Иванов Иван', phones: ['+375291234567'] }],
+        23: [{ fio: 'Петрова Анна', phones: ['+375297654321'] }],
+        34: [{ fio: 'Сидоров Сергей', phones: ['+375336789012'] }],
+        56: [{ fio: 'Козлова Екатерина', phones: ['+375447890123'] }],
+        67: [{ fio: 'Морозов Дмитрий', phones: ['+375298901234'] }],
     };
     
     Object.assign(houseDatabase, demo);
@@ -177,7 +228,7 @@ function loadDemoData() {
     showNotification('ℹ️ Показаны демо-данные (таблица недоступна)', 'info');
 }
 
-// 6. Отрисовка дома
+// 7. Отрисовка дома
 function buildHouseGrid(containerId, startingApt, entranceId) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -221,7 +272,7 @@ function buildHouseGrid(containerId, startingApt, entranceId) {
     }
 }
 
-// 7. Информационная панель (обновлена — каждый телефон отдельно)
+// 8. Информационная панель
 const infoPanel = document.getElementById('infoPanel');
 const darkOverlay = document.getElementById('overlay');
 
@@ -244,26 +295,29 @@ function openInfoPanel(aptNum, floor, entrance, residents) {
             const isShortName = person.fio.trim().split(/\s+/).length === 1;
             card.className = `resident-card ${isShortName ? 'no-name' : ''}`;
 
-            // Разбиваем телефон на отдельные номера (если их несколько)
-            let phonesHtml = '';
-            if (person.phone && person.phone.length > 5) {
-                // Если в строке несколько номеров (разделитель — пробел или запятая)
-                const phones = person.phone.split(/[,;\s]+/).filter(p => p.trim().length > 5);
-                if (phones.length > 1) {
-                    phonesHtml = phones.map(p => 
-                        `<a href="tel:${p.replace(/\s+/g, '')}" class="res-phone" style="display:block; margin-top:4px;">📞 ${p}</a>`
-                    ).join('');
-                } else {
-                    phonesHtml = `<a href="tel:${person.phone.replace(/\s+/g, '')}" class="res-phone">📞 ${person.phone}</a>`;
-                }
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'res-name';
+            nameDiv.innerText = person.fio;
+            card.appendChild(nameDiv);
+
+            // Отображаем телефоны
+            const phones = person.phones || [];
+            if (phones.length === 0) {
+                const noPhone = document.createElement('div');
+                noPhone.style.cssText = 'color: #64748b; font-size: 0.9rem; margin-top: 4px;';
+                noPhone.innerText = '🚫 Нет телефона';
+                card.appendChild(noPhone);
             } else {
-                phonesHtml = `<span style="color: #64748b; font-size: 0.9rem;">🚫 Нет телефона</span>`;
+                phones.forEach(phone => {
+                    const link = document.createElement('a');
+                    link.href = `tel:${phone.replace(/\s+/g, '')}`;
+                    link.className = 'res-phone';
+                    link.style.cssText = 'display: block; margin-top: 4px;';
+                    link.innerText = `📞 ${phone}`;
+                    card.appendChild(link);
+                });
             }
 
-            card.innerHTML = `
-                <div class="res-name">${person.fio}</div>
-                ${phonesHtml}
-            `;
             container.appendChild(card);
         });
     }
@@ -284,7 +338,7 @@ function closeInfoPanel() {
 document.getElementById('closeBtn').addEventListener('click', closeInfoPanel);
 darkOverlay.addEventListener('click', closeInfoPanel);
 
-// 8. Переключение подъездов
+// 9. Переключение подъездов
 function switchEntrance(entranceNum) {
     document.querySelectorAll('.entrance').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -292,13 +346,13 @@ function switchEntrance(entranceNum) {
     document.getElementById(`tab${entranceNum}`).classList.add('active');
 }
 
-// 9. Инициализация дома
+// 10. Инициализация
 function initHouse() {
     buildHouseGrid('entrance1', 1, 1);
     buildHouseGrid('entrance2', 45, 2);
 }
 
-// 10. Обработка ресайза
+// 11. Ресайз
 window.addEventListener('resize', () => {
     if (window.innerWidth >= 768) {
         document.getElementById('entrance1').classList.add('active');
@@ -309,7 +363,7 @@ window.addEventListener('resize', () => {
     }
 });
 
-// 11. Вспомогательные функции
+// 12. UI-функции
 function showLoadingStatus(text) {
     let status = document.getElementById('loadingStatus');
     if (!status) {
@@ -361,7 +415,6 @@ function showNotification(text, type = 'info') {
     }, 4000);
 }
 
-// Добавляем стили
 const styleSheet = document.createElement('style');
 styleSheet.textContent = `
     @keyframes slideUp {
@@ -371,7 +424,7 @@ styleSheet.textContent = `
 `;
 document.head.appendChild(styleSheet);
 
-// 12. Кнопка обновления
+// 13. Кнопка обновления
 const refreshBtn = document.createElement('button');
 refreshBtn.innerHTML = '🔄';
 refreshBtn.style.cssText = `
@@ -387,5 +440,5 @@ refreshBtn.onmouseout = () => refreshBtn.style.transform = 'scale(1)';
 refreshBtn.onclick = () => loadDataFromGoogleSheets();
 document.body.appendChild(refreshBtn);
 
-// 13. Запуск!
+// 14. Запуск!
 loadDataFromGoogleSheets();
