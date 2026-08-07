@@ -5,7 +5,6 @@ let houseDatabase = {};
 
 // 1. Загрузка данных из Google Sheets через JSON фид
 async function loadDataFromGoogleSheets() {
-    // Используем стабильный формат получения JSON данных
     const url = `https://google.com{SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
     
     try {
@@ -14,8 +13,7 @@ async function loadDataFromGoogleSheets() {
         
         const text = await response.text();
         
-        // Google возвращает текст со служебной оберткой: google.visualization.Query.setResponse({...});
-        // Вырезаем чистый JSON изнутри скобок
+        // Вырезаем чистый JSON из служебной обертки Google
         const jsonString = text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1);
         const jsonData = JSON.parse(jsonString);
         
@@ -27,23 +25,31 @@ async function loadDataFromGoogleSheets() {
     }
 }
 
-// 2. Парсер структурированного JSON от Google Таблицы
+// 2. Безопасный парсер JSON с проверкой структуры ячеек
 function parseGoogleJson(jsonData) {
     houseDatabase = {}; 
+    
+    if (!jsonData || !jsonData.table || !jsonData.table.rows) return;
     const rows = jsonData.table.rows;
 
-    if (!rows || rows.length === 0) return;
-
-    // Пропускаем строку заголовков (индекс 0) и идем по ответам формы
+    // Пропускаем строку заголовков (индекс 0) и идем по ответам
     for (let i = 1; i < rows.length; i++) {
-        const c = rows[i].c;
-        if (!c) continue;
+        const rowData = rows[i];
+        if (!rowData || !rowData.c) continue;
+        const c = rowData.c;
 
-        // Извлекаем данные из ячеек (учитываем возможные пустые поля через оператор ?)
-        const timestamp = c[0] ? c[0].v : '';
-        const rawNames = c[1] ? String(c[1].v) : ''; // Колонка B: ФИО
-        const rawApt = c[2] ? String(c[2].v) : '';   // Колонка C: № квартиры
-        const rawPhone = c[3] ? String(c[3].v) : ''; // Колонка D: Телефон
+        // Вспомогательная функция для безопасного извлечения текста из ячейки
+        const getVal = (cell) => {
+            if (!cell) return '';
+            if (cell.f !== undefined && cell.f !== null) return String(cell.f);
+            if (cell.v !== undefined && cell.v !== null) return String(cell.v);
+            return '';
+        };
+
+        const timestamp = getVal(c[0]);
+        const rawNames = getVal(c[1]);  // Колонка B: ФИО
+        const rawApt = getVal(c[2]);    // Колонка C: № квартиры
+        const rawPhone = getVal(c[3]);  // Колонка D: Телефон
 
         if (!rawNames || !rawApt) continue;
 
@@ -70,7 +76,7 @@ function parseGoogleJson(jsonData) {
             houseDatabase[aptNum].push({
                 fio: cleanName,
                 phone: phone,
-                meta: `Запись от: ${timestamp}`
+                meta: timestamp ? `Запись от: ${timestamp}` : ''
             });
         });
     }
@@ -180,7 +186,7 @@ function openInfoPanel(aptNum, floor, entrance, residents) {
             card.innerHTML = `
                 <div class="res-name">${person.fio}</div>
                 ${phoneField}
-                <div class="res-meta">ℹ️ ${person.meta}</div>
+                ${person.meta ? `<div class="res-meta">ℹ️ ${person.meta}</div>` : ''}
             `;
             container.appendChild(card);
         });
