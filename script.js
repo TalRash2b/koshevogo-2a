@@ -1,15 +1,13 @@
-// === НАСТРОЙКА: ID вашей Google Таблицы ===
-const SPREADSHEET_ID = '15O63umHMD-ghB3CQ7iPPKKESqkEFLzzy3BgauZQOzMs'; 
+// === НАСТРОЙКА: Ссылка на опубликованную Google Таблицу ===
+const PUBLISHED_URL = 'https://google.com';
 
 let houseDatabase = {};
 
-// 1. Загрузка данных из Google Sheets
+// 1. Загрузка данных из опубликованного CSV фида
 async function loadDataFromGoogleSheets() {
-    // Скачиваем первый лист в формате CSV напрямую
-    const url = `https://google.com{SPREADSHEET_ID}/gviz/tq?tqx=out:csv`;
     try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Сбой сети');
+        const response = await fetch(PUBLISHED_URL);
+        if (!response.ok) throw new Error('Сбой сети при запросе к Google');
         const csvText = await response.text();
         parseFormCSV(csvText);
         initHouse();
@@ -19,7 +17,7 @@ async function loadDataFromGoogleSheets() {
     }
 }
 
-// 2. Неубиваемый парсер CSV
+// 2. Универсальный парсер CSV ответов формы
 function parseFormCSV(csvText) {
     const lines = csvText.split(/\r?\n/);
     houseDatabase = {}; 
@@ -28,25 +26,25 @@ function parseFormCSV(csvText) {
         const line = lines[i].trim();
         if (!line) continue;
 
-        // Корректно разбиваем строку, игнорируя запятые внутри кавычек
+        // Разбиваем строку по запятым, игнорируя запятые внутри кавычек
         const row = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(val => val.replace(/^"|"$/g, '').trim());
         
-        if (row.length < 4) continue; // Защита от пустых строк
+        if (row.length < 4) continue; // Защита от коротких строк
 
         const rawNames = row[1]; // Колонка B: ФИО
         const rawApt = row[2];   // Колонка C: № квартиры
         const rawPhone = row[3]; // Колонка D: Телефон
 
-        // Достаем из колонки квартиры только цифры
+        // Достаем из текста колонки квартиры только цифры
         const aptNumMatch = rawApt.match(/\d+/);
         if (!aptNumMatch) continue; 
-        const aptNum = parseInt(aptNumMatch[0]);
+        const aptNum = parseInt(aptNumMatch);
 
         if (!houseDatabase[aptNum]) {
             houseDatabase[aptNum] = [];
         }
 
-        // Чистим имена, если их записали несколько в одну ячейку (через запятую или союз "и")
+        // Разделяем имена, если в строку записали несколько человек через запятую или "и"
         const namesArray = rawNames.split(/,|\bи\b/);
         const phonesArray = rawPhone.split(/,|\s+/).filter(p => p.trim().length > 3);
 
@@ -66,16 +64,16 @@ function parseFormCSV(csvText) {
     }
 }
 
-// Форматирование телефона
+// Форматирование номера телефона под единый стандарт
 function cleanPhoneFormat(phoneStr) {
     let cleaned = phoneStr.trim().replace(/[^\d+]/g, '');
     if (cleaned.length === 9 && !cleaned.startsWith('+')) {
-        cleaned = '+375' + cleaned;
+        cleaned = '+375' + cleaned; // Дефолтный код для Беларуси
     }
     return cleaned;
 }
 
-// 3. Умный интерактивный поиск
+// 3. Умный интерактивный поиск жильцов
 function handleSearch() {
     const query = document.getElementById('searchInput').value.toLowerCase().trim();
     const apartments = document.querySelectorAll('.apartment');
@@ -106,7 +104,7 @@ function handleSearch() {
     });
 }
 
-// 4. Отрисовка дома
+// 4. Отрисовка дома (11 -> 1 этаж, по 4 квартиры)
 function buildHouseGrid(containerId, startingApt, entranceId) {
     const container = document.getElementById(containerId);
     container.innerHTML = `<div class="entrance-title">${entranceId} Подъезд</div>`; 
@@ -213,4 +211,5 @@ window.addEventListener('resize', () => {
     }
 });
 
+// СТАРТ
 loadDataFromGoogleSheets();
