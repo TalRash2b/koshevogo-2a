@@ -28,7 +28,7 @@ async function loadDataFromGoogleSheets() {
     }
 }
 
-// 2. Парсер данных (чистый и простой)
+// 2. Парсер данных (ИСПРАВЛЕН)
 function parseData(jsonData) {
     houseDatabase = {};
     
@@ -40,7 +40,6 @@ function parseData(jsonData) {
         
         const cells = row.c;
         
-        // Берём данные из колонок
         const name = cells[1] ? String(cells[1].v || cells[1].f || '').trim() : '';
         const aptRaw = cells[2] ? String(cells[2].v || cells[2].f || '').trim() : '';
         const phoneRaw = cells[3] ? String(cells[3].v || cells[3].f || '').trim() : '';
@@ -54,24 +53,33 @@ function parseData(jsonData) {
             houseDatabase[aptNum] = [];
         }
         
-        // Разбиваем имена (через запятую)
+        // Разбиваем имена
         const names = name.split(',').map(n => n.trim()).filter(n => n);
         
-        // Разбиваем телефоны (через запятую или пробел)
+        // Разбиваем телефоны
         let phones = [];
         if (phoneRaw) {
             phones = phoneRaw.split(/[,;\s]+/).map(p => p.trim()).filter(p => p.length > 3);
             phones = phones.map(p => formatPhone(p));
         }
         
-        // Сопоставляем имена и телефоны по порядку
-        names.forEach((n, index) => {
-            const phone = phones[index] || '';
+        // === НОВАЯ ЛОГИКА ===
+        if (names.length === 1 && phones.length > 1) {
+            // Если имя одно, а телефонов несколько — отдаем все телефоны этому одному человеку
             houseDatabase[aptNum].push({
-                fio: n,
-                phones: phone ? [phone] : []
+                fio: names[0],
+                phones: phones // Все телефоны
             });
-        });
+        } else {
+            // Если имен несколько — сопоставляем по порядку
+            names.forEach((n, index) => {
+                const phone = phones[index] || '';
+                houseDatabase[aptNum].push({
+                    fio: n,
+                    phones: phone ? [phone] : []
+                });
+            });
+        }
     }
     
     console.log(`✅ Загружено ${Object.keys(houseDatabase).length} квартир`);
@@ -91,7 +99,7 @@ function formatPhone(phone) {
     return cleaned;
 }
 
-// 4. Демо-данные (на случай, если таблица недоступна)
+// 4. Демо-данные
 function loadDemoData() {
     houseDatabase = {
         15: [{ fio: 'Иванов Иван', phones: ['+375291234567'] }],
