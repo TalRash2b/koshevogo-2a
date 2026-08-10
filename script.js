@@ -94,15 +94,22 @@ function formatPhone(phone) {
     return cleaned;
 }
 
-// 4. Обновление шапки (чистый текст с процентами)
+// 4. Обновление прогресс-бара
 function updateHeader() {
     const filled = Object.keys(houseDatabase).length;
     const total = 88;
     const percent = Math.round((filled / total) * 100);
     
-    const header = document.getElementById('headerCount');
-    if (header) {
-        header.textContent = `Заполнено ${filled} из ${total} квартир (${percent}%)`;
+    // Обновляем текст
+    const label = document.getElementById('progressLabel');
+    if (label) {
+        label.textContent = `Заполнено ${filled} из ${total} квартир (${percent}%)`;
+    }
+    
+    // Обновляем заливку
+    const fill = document.getElementById('progressFill');
+    if (fill) {
+        fill.style.width = `${percent}%`;
     }
 }
 
