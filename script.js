@@ -94,23 +94,23 @@ function formatPhone(phone) {
     return cleaned;
 }
 
-// 4. Обновление шапки (с процентами)
+// 4. Обновление шапки с прогресс-баром
 function updateHeader() {
     const filled = Object.keys(houseDatabase).length;
     const total = 88;
     const percent = Math.round((filled / total) * 100);
     
-    const header = document.querySelector('header p');
-    if (header) {
-        header.textContent = `Заполнено ${filled} из ${total} квартир (${percent}%)`;
-        header.style.fontSize = '1.2rem';
-        header.style.fontWeight = 'bold';
-        header.style.color = '#f8fafc';
+    // Обновляем текст внутри прогресс-бара
+    const textEl = document.getElementById('progressText');
+    if (textEl) {
+        textEl.textContent = `Заполнено ${filled} из ${total} квартир (${percent}%)`;
     }
-}
-const progressBar = document.getElementById('progressBar');
-if (progressBar) {
-    progressBar.style.width = `${percent}%`;
+    
+    // Обновляем заливку
+    const fillEl = document.getElementById('progressFill');
+    if (fillEl) {
+        fillEl.style.width = `${percent}%`;
+    }
 }
 
 // 5. Состояние ошибки (без демо-данных)
