@@ -108,6 +108,10 @@ function updateHeader() {
         header.style.color = '#f8fafc';
     }
 }
+const progressBar = document.getElementById('progressBar');
+if (progressBar) {
+    progressBar.style.width = `${percent}%`;
+}
 
 // 5. Состояние ошибки (без демо-данных)
 function showErrorState() {
