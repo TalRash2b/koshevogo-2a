@@ -94,13 +94,15 @@ function formatPhone(phone) {
     return cleaned;
 }
 
-// 4. Обновление шапки (без эмодзи, крупнее шрифт)
+// 4. Обновление шапки (с процентами)
 function updateHeader() {
     const filled = Object.keys(houseDatabase).length;
     const total = 88;
+    const percent = Math.round((filled / total) * 100);
+    
     const header = document.querySelector('header p');
     if (header) {
-        header.textContent = `Заполнено ${filled} из ${total} квартир`;
+        header.textContent = `Заполнено ${filled} из ${total} квартир (${percent}%)`;
         header.style.fontSize = '1.2rem';
         header.style.fontWeight = 'bold';
         header.style.color = '#f8fafc';
