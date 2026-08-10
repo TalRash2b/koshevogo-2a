@@ -9,14 +9,15 @@
 </head>
 <body>
 
-    <header>
-        <h1>ул. Олега Кошевого, 2А</h1>
-        <p id="headerCount">Заполнено 0 из 88 квартир</p>
-    </header>
-
-   <div class="progress-container">
-       <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
-   </div>
+<header>
+    <h1>ул. Олега Кошевого, 2А</h1>
+    <div class="progress-wrapper">
+        <div class="progress-track" id="progressTrack">
+            <div class="progress-fill" id="progressFill"></div>
+            <span class="progress-text" id="progressText">Заполнено 0 из 88 квартир (0%)</span>
+        </div>
+    </div>
+</header>
     
     <!-- Переключатель подъездов для мобильных экранов -->
     <div class="tabs-container">
