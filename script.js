@@ -21,7 +21,6 @@ async function loadDataFromGoogleSheets() {
         hideLoadingStatus();
         updateHeader();
         
-        // Принудительно применяем мобильный режим при загрузке
         applyMobileFix();
     } catch (error) {
         console.error(error);
@@ -100,13 +99,11 @@ function updateHeader() {
     const total = 88;
     const percent = Math.round((filled / total) * 100);
     
-    // Обновляем текст
     const label = document.getElementById('progressLabel');
     if (label) {
         label.textContent = `Заполнено ${filled} из ${total} квартир (${percent}%)`;
     }
     
-    // Обновляем заливку
     const fill = document.getElementById('progressFill');
     if (fill) {
         fill.style.width = `${percent}%`;
@@ -116,8 +113,8 @@ function updateHeader() {
 
 // 4.5. Подсчёт статистики по подъездам
 function getEntranceStats() {
-    const total1 = 44; // 1-й подъезд: квартиры 1-44
-    const total2 = 44; // 2-й подъезд: квартиры 45-88
+    const total1 = 44;
+    const total2 = 44;
     
     let filled1 = 0;
     let filled2 = 0;
@@ -131,13 +128,10 @@ function getEntranceStats() {
     const percent1 = Math.round((filled1 / total1) * 100);
     const percent2 = Math.round((filled2 / total2) * 100);
     
-    return {
-        filled1, total1, percent1,
-        filled2, total2, percent2
-    };
+    return { filled1, total1, percent1, filled2, total2, percent2 };
 }
 
-// 4.6. Обновление статистики в табах (для мобилок)
+// 4.6. Обновление статистики в табах
 function updateTabStats() {
     const stats = getEntranceStats();
     
@@ -148,7 +142,7 @@ function updateTabStats() {
     if (tab2) tab2.textContent = `${stats.filled2} из ${stats.total2} (${stats.percent2}%)`;
 }
 
-// 5. Состояние ошибки (без демо-данных)
+// 5. Состояние ошибки
 function showErrorState() {
     houseDatabase = {};
     renderBuilding();
@@ -169,8 +163,6 @@ function showErrorState() {
 function renderBuilding() {
     buildEntrance('entrance1', 1, 1);
     buildEntrance('entrance2', 45, 2);
-    
-    // Применяем мобильный фикс после отрисовки
     setTimeout(applyMobileFix, 50);
 }
 
@@ -178,23 +170,21 @@ function buildEntrance(containerId, startApt, entranceNum) {
     const container = document.getElementById(containerId);
     if (!container) return;
     
-    // Получаем статистику
-const stats = getEntranceStats();
-let statsText = '';
-if (entranceNum === 1) {
-    statsText = `${stats.filled1} из ${stats.total1} (${stats.percent1}%)`;
-} else {
-    statsText = `${stats.filled2} из ${stats.total2} (${stats.percent2}%)`;
-}
-
-// (скрываем на мобилках):
-const isMobile = window.innerWidth < 768;
-container.innerHTML = `
-    <div class="entrance-title" style="${isMobile ? 'display: none;' : ''}">
-        ${entranceNum} Подъезд
-        <span class="entrance-stats">${statsText}</span>
-    </div>
-`;
+    const stats = getEntranceStats();
+    let statsText = '';
+    if (entranceNum === 1) {
+        statsText = `${stats.filled1} из ${stats.total1} (${stats.percent1}%)`;
+    } else {
+        statsText = `${stats.filled2} из ${stats.total2} (${stats.percent2}%)`;
+    }
+    
+    const isMobile = window.innerWidth < 768;
+    container.innerHTML = `
+        <div class="entrance-title" style="${isMobile ? 'display: none;' : ''}">
+            ${entranceNum} Подъезд
+            <span class="entrance-stats">${statsText}</span>
+        </div>
+    `;
     
     let floorApt = startApt + 40;
     
@@ -217,9 +207,9 @@ container.innerHTML = `
             
             const aptDiv = document.createElement('div');
             aptDiv.className = `apartment ${empty ? 'empty' : ''}`;
-            // Генерируем иконки людей (Font Awesome)
+            
             const peopleIcons = empty ? '' : `<i class="fa-regular fa-user"></i>`.repeat(residents.length);
-
+            
             aptDiv.innerHTML = `
                 <div class="apt-num">${aptNum}</div>
                 <div class="apt-count">${peopleIcons}</div>
@@ -301,40 +291,86 @@ function closeInfo() {
 document.getElementById('closeBtn').addEventListener('click', closeInfo);
 document.getElementById('overlay').addEventListener('click', closeInfo);
 
-// 9. Переключение подъездов (исправлено для мобильных)
-function switchEntrance(num) {
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById(`tab${num}`).classList.add('active');
+// 9. Переключение подъездов С АНИМАЦИЕЙ СВАЙПА
+function switchEntrance(num, direction) {
+    const currentEntrance = document.querySelector('.entrance.active');
+    const nextEntrance = document.getElementById(`entrance${num}`);
     
-    // Показываем только выбранный подъезд
-    document.querySelectorAll('.entrance').forEach(el => el.classList.remove('active'));
-    document.getElementById(`entrance${num}`).classList.add('active');
+    if (currentEntrance === nextEntrance) return;
+    if (!currentEntrance || !nextEntrance) return;
     
-    // Применяем фикс для мобильных
-    applyMobileFix();
+    // Если направление не задано — определяем по номеру
+    if (!direction) {
+        const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
+        direction = num > currentNum ? 'left' : 'right';
+    }
+    
+    // Анимация текущего (уезжает)
+    currentEntrance.classList.remove('active');
+    if (direction === 'left') {
+        currentEntrance.classList.add('exit-left');
+    } else {
+        currentEntrance.classList.add('exit-right');
+    }
+    
+    // Показываем следующий
+    nextEntrance.style.display = 'flex';
+    nextEntrance.style.position = 'absolute';
+    nextEntrance.style.top = '0';
+    nextEntrance.style.left = '0';
+    nextEntrance.style.width = '100%';
+    
+    if (direction === 'left') {
+        nextEntrance.style.transform = 'translateX(100%)';
+    } else {
+        nextEntrance.style.transform = 'translateX(-100%)';
+    }
+    nextEntrance.style.opacity = '0';
+    nextEntrance.style.pointerEvents = 'none';
+    
+    void nextEntrance.offsetHeight;
+    
+    nextEntrance.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease';
+    nextEntrance.style.transform = 'translateX(0)';
+    nextEntrance.style.opacity = '1';
+    
+    setTimeout(() => {
+        nextEntrance.classList.add('active');
+        nextEntrance.style.position = 'relative';
+        nextEntrance.style.pointerEvents = 'auto';
+        nextEntrance.style.transform = '';
+        nextEntrance.style.opacity = '';
+        nextEntrance.style.transition = '';
+        
+        currentEntrance.classList.remove('exit-left', 'exit-right');
+        currentEntrance.style.display = 'none';
+        
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(`tab${num}`).classList.add('active');
+        
+        applyMobileFix();
+    }, 450);
 }
 
-// 10. Критический фикс для мобильных: скрываем второй подъезд полностью
+// 10. Мобильный фикс
 function applyMobileFix() {
     const isMobile = window.innerWidth < 768;
     
     if (isMobile) {
-        // На мобильных — показываем только активный подъезд
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab) {
             const num = activeTab.id === 'tab1' ? 1 : 2;
             document.querySelectorAll('.entrance').forEach(el => {
                 el.classList.remove('active');
-                el.style.display = 'none'; // Полностью скрываем
+                el.style.display = 'none';
             });
             const activeEntrance = document.getElementById(`entrance${num}`);
             if (activeEntrance) {
                 activeEntrance.classList.add('active');
-                activeEntrance.style.display = 'flex'; // Показываем только активный
+                activeEntrance.style.display = 'flex';
             }
         }
     } else {
-        // На ПК — показываем оба
         document.querySelectorAll('.entrance').forEach(el => {
             el.classList.add('active');
             el.style.display = 'flex';
@@ -342,18 +378,17 @@ function applyMobileFix() {
     }
 }
 
-// 11. Ресайз (ПК — два подъезда, мобильные — один)
+// 11. Ресайз
 window.addEventListener('resize', () => {
     applyMobileFix();
 });
 
-// 12. Убираем "Интерактивная модель дома" из шапки
+// 12. Убираем "Интерактивная модель дома"
 function removeSubtitle() {
     const header = document.querySelector('header');
     if (header) {
         const p = header.querySelector('p');
         if (p && !p.textContent.includes('Заполнено')) {
-            // Если это старый подзаголовок — удаляем
             if (p.textContent === 'Интерактивная модель дома' || p.textContent === '') {
                 p.remove();
             }
@@ -402,10 +437,7 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// 14. Запуск!
-removeSubtitle();
-
-// ===== СВАЙП ДЛЯ МОБИЛОК =====
+// 14. СВАЙП ДЛЯ МОБИЛОК
 (function initSwipe() {
     let touchStartX = 0;
     let touchEndX = 0;
@@ -447,10 +479,13 @@ removeSubtitle();
         }
         
         if (newNum !== currentNum) {
-            switchEntrance(newNum);
+            const direction = diff > 0 ? 'left' : 'right';
+            switchEntrance(newNum, direction);
             if (navigator.vibrate) navigator.vibrate(10);
         }
     }, { passive: true });
 })();
 
+// 15. Запуск!
+removeSubtitle();
 loadDataFromGoogleSheets();
