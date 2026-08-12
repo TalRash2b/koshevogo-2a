@@ -111,6 +111,7 @@ function updateHeader() {
     if (fill) {
         fill.style.width = `${percent}%`;
     }
+    updateTabStats();
 }
 
 // 4.5. Подсчёт статистики по подъездам
