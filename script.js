@@ -488,4 +488,24 @@ document.head.appendChild(style);
 
 // 15. Запуск!
 removeSubtitle();
+// ===== ПЛАВНЫЙ ПЕРЕЕЗД ПОДСВЕТКИ ТАБА =====
+function updateTabSlider() {
+    const activeTab = document.querySelector('.tab-btn.active');
+    const slider = document.getElementById('tabSlider');
+    const container = document.getElementById('tabsContainer');
+    
+    if (!activeTab || !slider || !container) return;
+    
+    const containerRect = container.getBoundingClientRect();
+    const tabRect = activeTab.getBoundingClientRect();
+    
+    const left = tabRect.left - containerRect.left + 5;
+    const width = tabRect.width - 10;
+    
+    slider.style.left = left + 'px';
+    slider.style.width = width + 'px';
+}
+
+// Вызываем при загрузке, ресайзе и переключении
+window.addEventListener('resize', updateTabSlider);
 loadDataFromGoogleSheets();
