@@ -393,8 +393,8 @@ function updateTabSlider() {
         const containerRect = container.getBoundingClientRect();
         const tabRect = activeTab.getBoundingClientRect();
         
-        const left = tabRect.left - containerRect.left + 5;
-        const width = tabRect.width - 10;
+        const left = tabRect.left - containerRect.left + 2;
+        const width = tabRect.width - 4;
         
         slider.style.left = left + 'px';
         slider.style.width = width + 'px';
