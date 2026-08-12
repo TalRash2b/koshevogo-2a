@@ -621,6 +621,21 @@ document.head.appendChild(style);
 document.getElementById('closeBtn').addEventListener('click', closeInfo);
 document.getElementById('overlay').addEventListener('click', closeInfo);
 
+// ===== ТЕСТ: КРЕСТИК =====
+setTimeout(() => {
+    const btn = document.getElementById('closeBtn');
+    console.log('🔍 Крестик найден?', btn);
+    if (btn) {
+        console.log('✅ Крестик есть в DOM');
+        btn.onclick = function() {
+            console.log('🟢 Крестик нажали!');
+            closeInfo();
+        };
+    } else {
+        console.log('❌ Крестик НЕ найден в DOM');
+    }
+}, 500);
+
 // 16. Запуск!
 removeSubtitle();
 loadDataFromGoogleSheets();
