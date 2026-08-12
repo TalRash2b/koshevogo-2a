@@ -167,7 +167,7 @@ function buildEntrance(containerId, startApt, entranceNum) {
             const aptDiv = document.createElement('div');
             aptDiv.className = `apartment ${empty ? 'empty' : ''}`;
             // Генерируем иконки людей (Font Awesome)
-            const peopleIcons = empty ? '' : `<i class="fa-regular fa-user" style="color: #38bdf8; font-size: 0.8rem; margin: 0 1px;"></i>`.repeat(residents.length);
+            const peopleIcons = empty ? '' : `<i class="fa-regular fa-user" font-size: 0.8rem; margin: 0 1px;"></i>`.repeat(residents.length);
 
             aptDiv.innerHTML = `
                 <div class="apt-num">${aptNum}</div>
