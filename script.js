@@ -288,11 +288,12 @@ function closeInfo() {
     panel.classList.remove('active');
     overlay.classList.remove('active');
     
-    // Сбрасываем inline-стили, которые могли остаться после свайпа
+    // Сбрасываем inline-стили
     panel.style.bottom = '';
     panel.style.opacity = '';
     panel.style.transition = '';
     panel.style.willChange = '';
+    panel.style.display = '';
     
     document.body.style.overflow = '';
     
@@ -301,7 +302,7 @@ function closeInfo() {
     }, 200);
 }
 
-// 9. Переключение подъездов С АНИМАЦИЕЙ И ОБНОВЛЕНИЕМ ПОЛЗУНКА
+// 9. Переключение подъездов
 function switchEntrance(num, direction) {
     const currentEntrance = document.querySelector('.entrance.active');
     const nextEntrance = document.getElementById(`entrance${num}`);
@@ -314,11 +315,9 @@ function switchEntrance(num, direction) {
         direction = num > currentNum ? 'left' : 'right';
     }
     
-    // Анимация текущего
     currentEntrance.classList.remove('active');
     currentEntrance.classList.add(direction === 'left' ? 'exit-left' : 'exit-right');
     
-    // Подготовка следующего
     nextEntrance.style.display = 'flex';
     nextEntrance.style.position = 'absolute';
     nextEntrance.style.top = '0';
@@ -336,7 +335,6 @@ function switchEntrance(num, direction) {
         nextEntrance.style.opacity = '1';
     });
     
-    // Обновляем табы И ползунок
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.getElementById(`tab${num}`).classList.add('active');
     updateTabSlider();
@@ -390,7 +388,7 @@ function applyMobileFix() {
     }
 }
 
-// 11. ПЛАВНЫЙ ПЕРЕЕЗД ПОДСВЕТКИ ТАБА (ПОЛЗУНОК)
+// 11. Ползунок
 function updateTabSlider() {
     const activeTab = document.querySelector('.tab-btn.active');
     const slider = document.getElementById('tabSlider');
@@ -460,7 +458,6 @@ function showNotification(text, type) {
     }, 3000);
 }
 
-// Добавляем анимацию
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideUp {
@@ -470,7 +467,7 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// 15. СВАЙП ДЛЯ МОБИЛОК
+// ===== СВАЙП ДЛЯ ПЕРЕКЛЮЧЕНИЯ ПОДЪЕЗДОВ =====
 (function initSwipe() {
     let touchStartX = 0;
     let touchEndX = 0;
@@ -519,24 +516,17 @@ document.head.appendChild(style);
     }, { passive: true });
 })();
 
-// 16. Запуск!
-removeSubtitle();
-
-// ===== СВАЙП ДЛЯ ЗАКРЫТИЯ ШТОРКИ (по всей поверхности) =====
+// ===== СВАЙП ДЛЯ ЗАКРЫТИЯ ШТОРКИ =====
 (function initSwipeToClose() {
     let startY = 0;
     let currentY = 0;
     let isDragging = false;
     const panel = document.getElementById('infoPanel');
-    const overlay = document.getElementById('overlay');
-    let isPanelOpen = false;
     
-    // Проверяем, открыта ли шторка
     function isPanelActive() {
         return panel.classList.contains('active');
     }
     
-    // Начинаем тянуть
     function onStart(e) {
         if (!isPanelActive()) return;
         const touch = e.touches ? e.touches[0] : e;
@@ -545,11 +535,9 @@ removeSubtitle();
         panel.style.transition = 'none';
         panel.style.willChange = 'transform, opacity';
         document.body.style.overflow = 'hidden';
-        // Убираем стандартный скролл
         e.preventDefault();
     }
     
-    // Тянем
     function onMove(e) {
         if (!isDragging || !isPanelActive()) return;
         e.preventDefault();
@@ -562,7 +550,6 @@ removeSubtitle();
             panel.style.bottom = `-${diff}px`;
             panel.style.opacity = 1 - progress * 0.5;
             
-            // Если слишком далеко — закрываем
             if (diff > 300) {
                 closeInfo();
                 isDragging = false;
@@ -572,10 +559,8 @@ removeSubtitle();
         }
     }
     
-    // Отпускаем
-    function onEnd(e) {
+    function onEnd() {
         if (!isDragging) {
-            // Сбрасываем состояние, если шторка закрыта
             if (!isPanelActive()) {
                 document.body.style.overflow = '';
             }
@@ -597,17 +582,17 @@ removeSubtitle();
         }
     }
     
-    // События на всю шторку (а не только на ручку)
+    // Тач-события
     panel.addEventListener('touchstart', onStart, { passive: false });
     document.addEventListener('touchmove', onMove, { passive: false });
     document.addEventListener('touchend', onEnd, { passive: false });
     
-    // События для мыши (для ПК)
+    // Мышь (для ПК)
     panel.addEventListener('mousedown', onStart);
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onEnd);
     
-    // Следим за открытием/закрытием шторки
+    // Следим за состоянием шторки
     const observer = new MutationObserver(() => {
         if (!isPanelActive()) {
             document.body.style.overflow = '';
@@ -619,4 +604,7 @@ removeSubtitle();
     });
     observer.observe(panel, { attributes: true, attributeFilter: ['class'] });
 })();
+
+// 16. Запуск!
+removeSubtitle();
 loadDataFromGoogleSheets();
