@@ -46,6 +46,7 @@ header p {
 
 /* ===== ТАБЫ ===== */
 .tabs-container {
+    position: relative;
     display: flex;
     width: 100%;
     max-width: 500px;
@@ -55,11 +56,27 @@ header p {
     margin-bottom: 15px;
     border: 1px solid #475569;
     gap: 5px;
+    overflow: hidden;
+}
+
+/* Плавающий индикатор (ползунок) */
+.tab-slider {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    height: calc(100% - 10px);
+    background: #0284C7;
+    border-radius: 6px;
+    transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1), width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
+    pointer-events: none;
 }
 
 .tab-btn {
     flex: 1;
-    background: none;
+    position: relative;
+    z-index: 1;
+    background: transparent;
     border: none;
     color: var(--text-muted);
     padding: 14px 8px;
@@ -67,7 +84,7 @@ header p {
     font-weight: 600;
     cursor: pointer;
     border-radius: 6px;
-    transition: background 0.2s ease, color 0.2s ease;
+    transition: color 0.3s ease;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -78,7 +95,7 @@ header p {
 }
 
 .tab-btn.active {
-    background: #0284C7;
+    background: transparent;
     color: #ffffff;
 }
 
@@ -108,7 +125,7 @@ header p {
         font-size: 1rem;
     }
     .tab-btn.active {
-        font-size: 1rem; /* Одинаковый размер */
+        font-size: 1rem;
         padding: 10px 4px;
     }
     .tab-stats {
@@ -130,6 +147,8 @@ header p {
     width: 100%; 
     max-width: 1200px; 
     justify-content: center; 
+    overflow: hidden;
+    position: relative;
 }
 
 .entrance {
@@ -142,6 +161,8 @@ header p {
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5);
     width: 100%;
     max-width: 450px;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+    will-change: transform, opacity;
 }
 
 /* Заголовки подъездов (ПК) */
@@ -170,6 +191,32 @@ header p {
 @media (max-width: 767px) {
     .entrance-title {
         display: none !important;
+    }
+    
+    .entrance {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        opacity: 0;
+        transform: translateX(100%);
+        pointer-events: none;
+        max-width: 100%;
+        margin: 0;
+    }
+    .entrance.active {
+        position: relative;
+        opacity: 1;
+        transform: translateX(0);
+        pointer-events: auto;
+    }
+    .entrance.exit-left {
+        opacity: 0;
+        transform: translateX(-100%);
+    }
+    .entrance.exit-right {
+        opacity: 0;
+        transform: translateX(100%);
     }
 }
 
@@ -444,80 +491,4 @@ header p {
     color: #f8fafc;
     text-shadow: 0 1px 4px rgba(0,0,0,0.6);
     letter-spacing: 0.5px;
-}
-
-/* Контейнер подъездов — делаем его каруселью */
-.building-container {
-    overflow: hidden;
-    position: relative;
-    width: 100%;
-    max-width: 1200px;
-}
-
-/* Каждый подъезд — слайд */
-.entrance {
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
-    will-change: transform, opacity;
-}
-
-/* На мобилках — один подъезд виден, второй скрыт */
-@media (max-width: 767px) {
-    .entrance {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        opacity: 0;
-        transform: translateX(100%);
-        pointer-events: none;
-        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
-        max-width: 100%;
-        margin: 0;
-    }
-    .entrance.active {
-        position: relative;
-        opacity: 1;
-        transform: translateX(0);
-        pointer-events: auto;
-    }
-    .entrance.exit-left {
-        opacity: 0;
-        transform: translateX(-100%);
-    }
-    .entrance.exit-right {
-        opacity: 0;
-        transform: translateX(100%);
-    }
-}
-
-/* Контейнер табов — чтобы ползунок позиционировался относительно него */
-.tabs-container {
-    position: relative;
-    overflow: hidden;
-}
-
-/* Плавающий индикатор (ползунок) */
-.tab-slider {
-    position: absolute;
-    bottom: 5px;
-    left: 5px;
-    height: calc(100% - 10px);
-    background: #0284C7;
-    border-radius: 6px;
-    transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1), width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 0;
-    pointer-events: none;
-}
-
-/* Кнопки табов поверх ползунка */
-.tab-btn {
-    position: relative;
-    z-index: 1;
-    background: transparent;
-    transition: color 0.3s ease;
-}
-
-.tab-btn.active {
-    background: transparent;
-    color: #ffffff;
 }
