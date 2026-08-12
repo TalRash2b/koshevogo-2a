@@ -404,4 +404,53 @@ document.head.appendChild(style);
 
 // 14. Запуск!
 removeSubtitle();
+
+// ===== СВАЙП ДЛЯ МОБИЛОК =====
+(function initSwipe() {
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let isSwiping = false;
+
+    document.addEventListener('touchstart', function(e) {
+        touchStartX = e.changedTouches[0].screenX;
+        isSwiping = true;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function(e) {
+        if (!isSwiping) return;
+        const target = e.target.closest('.tabs-container');
+        if (target) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    document.addEventListener('touchend', function(e) {
+        if (!isSwiping) return;
+        isSwiping = false;
+        
+        touchEndX = e.changedTouches[0].screenX;
+        const swipeThreshold = 40;
+        const diff = touchStartX - touchEndX;
+        
+        if (window.innerWidth >= 768) return;
+        
+        const activeTab = document.querySelector('.tab-btn.active');
+        if (!activeTab) return;
+        
+        const currentNum = activeTab.id === 'tab1' ? 1 : 2;
+        let newNum = currentNum;
+        
+        if (diff > swipeThreshold) {
+            newNum = currentNum === 1 ? 2 : 2;
+        } else if (diff < -swipeThreshold) {
+            newNum = currentNum === 2 ? 1 : 1;
+        }
+        
+        if (newNum !== currentNum) {
+            switchEntrance(newNum);
+            if (navigator.vibrate) navigator.vibrate(10);
+        }
+    }, { passive: true });
+})();
+
 loadDataFromGoogleSheets();
