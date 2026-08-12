@@ -385,6 +385,33 @@ header p {
     letter-spacing: 0.5px;
 }
 
+/* Статистика в табах (только на мобилках) */
+.tab-stats {
+    display: none; /* Скрыто на ПК */
+    font-size: 0.6rem;
+    font-weight: 300;
+    color: #94a3b8;
+    margin-left: 4px;
+}
+
+@media (max-width: 767px) {
+    .tab-stats {
+        display: inline; /* Показываем только на мобилках */
+    }
+    .tab-btn {
+        flex-direction: column;
+        gap: 2px;
+        padding: 8px 6px;
+        font-size: 0.9rem;
+    }
+    .tab-label {
+        font-size: 0.9rem;
+    }
+    .tab-stats {
+        font-size: 0.65rem;
+        color: #94a3b8;
+    }
+}
 /* Статистика подъездов */
 .entrance-title {
     display: flex;
