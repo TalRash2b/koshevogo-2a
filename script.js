@@ -5,7 +5,7 @@ let houseDatabase = {};
 
 // 1. Загрузка данных
 async function loadDataFromGoogleSheets() {
-    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
+    const url = `https://docs.google.comspreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
     
     showLoadingStatus('Загрузка данных...');
     
@@ -22,6 +22,8 @@ async function loadDataFromGoogleSheets() {
         updateHeader();
         
         applyMobileFix();
+        // Обновляем ползунок после загрузки
+        setTimeout(updateTabSlider, 100);
     } catch (error) {
         console.error(error);
         hideLoadingStatus();
@@ -291,7 +293,7 @@ function closeInfo() {
 document.getElementById('closeBtn').addEventListener('click', closeInfo);
 document.getElementById('overlay').addEventListener('click', closeInfo);
 
-// 9. Переключение подъездов С АНИМАЦИЕЙ СВАЙПА
+// 9. Переключение подъездов С АНИМАЦИЕЙ И ОБНОВЛЕНИЕМ ПОЛЗУНКА
 function switchEntrance(num, direction) {
     const currentEntrance = document.querySelector('.entrance.active');
     const nextEntrance = document.getElementById(`entrance${num}`);
@@ -299,40 +301,37 @@ function switchEntrance(num, direction) {
     if (currentEntrance === nextEntrance) return;
     if (!currentEntrance || !nextEntrance) return;
     
-    // Если направление не задано — определяем по номеру
     if (!direction) {
         const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
         direction = num > currentNum ? 'left' : 'right';
     }
     
-    // Анимация текущего (уезжает)
+    // Анимация текущего
     currentEntrance.classList.remove('active');
-    if (direction === 'left') {
-        currentEntrance.classList.add('exit-left');
-    } else {
-        currentEntrance.classList.add('exit-right');
-    }
+    currentEntrance.classList.add(direction === 'left' ? 'exit-left' : 'exit-right');
     
-    // Показываем следующий
+    // Подготовка следующего
     nextEntrance.style.display = 'flex';
     nextEntrance.style.position = 'absolute';
     nextEntrance.style.top = '0';
     nextEntrance.style.left = '0';
     nextEntrance.style.width = '100%';
-    
-    if (direction === 'left') {
-        nextEntrance.style.transform = 'translateX(100%)';
-    } else {
-        nextEntrance.style.transform = 'translateX(-100%)';
-    }
+    nextEntrance.style.transform = direction === 'left' ? 'translateX(100%)' : 'translateX(-100%)';
     nextEntrance.style.opacity = '0';
     nextEntrance.style.pointerEvents = 'none';
+    nextEntrance.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease';
     
     void nextEntrance.offsetHeight;
     
-    nextEntrance.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease';
-    nextEntrance.style.transform = 'translateX(0)';
-    nextEntrance.style.opacity = '1';
+    requestAnimationFrame(() => {
+        nextEntrance.style.transform = 'translateX(0)';
+        nextEntrance.style.opacity = '1';
+    });
+    
+    // Обновляем табы И ползунок
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(`tab${num}`).classList.add('active');
+    updateTabSlider(); // 👈 ПОЛЗУНОК ПЕРЕЕЗЖАЕТ
     
     setTimeout(() => {
         nextEntrance.classList.add('active');
@@ -344,9 +343,6 @@ function switchEntrance(num, direction) {
         
         currentEntrance.classList.remove('exit-left', 'exit-right');
         currentEntrance.style.display = 'none';
-        
-        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-        document.getElementById(`tab${num}`).classList.add('active');
         
         applyMobileFix();
     }, 450);
@@ -368,22 +364,51 @@ function applyMobileFix() {
             if (activeEntrance) {
                 activeEntrance.classList.add('active');
                 activeEntrance.style.display = 'flex';
+                activeEntrance.style.position = 'relative';
+                activeEntrance.style.transform = '';
+                activeEntrance.style.opacity = '';
+                activeEntrance.style.pointerEvents = 'auto';
             }
         }
     } else {
         document.querySelectorAll('.entrance').forEach(el => {
             el.classList.add('active');
             el.style.display = 'flex';
+            el.style.position = 'relative';
+            el.style.transform = '';
+            el.style.opacity = '';
+            el.style.pointerEvents = 'auto';
         });
     }
 }
 
-// 11. Ресайз
+// 11. ПЛАВНЫЙ ПЕРЕЕЗД ПОДСВЕТКИ ТАБА (ПОЛЗУНОК)
+function updateTabSlider() {
+    const activeTab = document.querySelector('.tab-btn.active');
+    const slider = document.getElementById('tabSlider');
+    const container = document.getElementById('tabsContainer');
+    
+    if (!activeTab || !slider || !container) return;
+    
+    requestAnimationFrame(() => {
+        const containerRect = container.getBoundingClientRect();
+        const tabRect = activeTab.getBoundingClientRect();
+        
+        const left = tabRect.left - containerRect.left + 5;
+        const width = tabRect.width - 10;
+        
+        slider.style.left = left + 'px';
+        slider.style.width = width + 'px';
+    });
+}
+
+// 12. Ресайз
 window.addEventListener('resize', () => {
     applyMobileFix();
+    updateTabSlider(); // 👈 ОБНОВЛЯЕМ ПОЛЗУНОК ПРИ РЕСАЙЗЕ
 });
 
-// 12. Убираем "Интерактивная модель дома"
+// 13. Убираем "Интерактивная модель дома"
 function removeSubtitle() {
     const header = document.querySelector('header');
     if (header) {
@@ -396,7 +421,7 @@ function removeSubtitle() {
     }
 }
 
-// 13. UI-функции
+// 14. UI-функции
 function showLoadingStatus(text) {
     let el = document.getElementById('loadingStatus');
     if (!el) {
@@ -437,7 +462,7 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// 14. СВАЙП ДЛЯ МОБИЛОК
+// 15. СВАЙП ДЛЯ МОБИЛОК
 (function initSwipe() {
     let touchStartX = 0;
     let touchEndX = 0;
@@ -486,26 +511,6 @@ document.head.appendChild(style);
     }, { passive: true });
 })();
 
-// 15. Запуск!
+// 16. Запуск!
 removeSubtitle();
-// ===== ПЛАВНЫЙ ПЕРЕЕЗД ПОДСВЕТКИ ТАБА =====
-function updateTabSlider() {
-    const activeTab = document.querySelector('.tab-btn.active');
-    const slider = document.getElementById('tabSlider');
-    const container = document.getElementById('tabsContainer');
-    
-    if (!activeTab || !slider || !container) return;
-    
-    const containerRect = container.getBoundingClientRect();
-    const tabRect = activeTab.getBoundingClientRect();
-    
-    const left = tabRect.left - containerRect.left + 5;
-    const width = tabRect.width - 10;
-    
-    slider.style.left = left + 'px';
-    slider.style.width = width + 'px';
-}
-
-// Вызываем при загрузке, ресайзе и переключении
-window.addEventListener('resize', updateTabSlider);
 loadDataFromGoogleSheets();
