@@ -86,7 +86,7 @@ header p {
 }
 
 .tab-stats {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     font-weight: 300;
     color: #94a3b8;
     transition: color 0.2s ease;
@@ -111,11 +111,11 @@ header p {
         font-size: 1rem;        /* На мобилках чуть меньше, но одинаково */
     }
     .tab-btn.active {
-        font-size: 1rem;
+        font-size: 1.2rem;
         padding: 10px 4px;
     }
     .tab-stats {
-        font-size: 0.65rem;
+        font-size: 0.85rem;
     }
 }
 
