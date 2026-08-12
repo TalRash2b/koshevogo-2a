@@ -388,20 +388,21 @@ header p {
 /* Статистика подъездов */
 .entrance-title {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
+    align-items: baseline;
+    justify-content: center;
+    gap: 10px;
     font-size: 1.2rem;
     font-weight: bold;
     color: var(--accent);
     border-bottom: 2px solid #475569;
     padding-bottom: 8px;
     margin-bottom: 10px;
+    flex-wrap: wrap; /* Чтобы на мобилках не ломалось */
 }
 
 .entrance-stats {
-    font-size: 0.75rem;      /* Меньше основного текста */
-    font-weight: 300;        /* Тоньше */
-    color: #94a3b8;          /* Приглушённый серый */
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: #94a3b8;
     letter-spacing: 0.3px;
 }
