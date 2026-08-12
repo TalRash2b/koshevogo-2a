@@ -144,8 +144,8 @@ function updateTabStats() {
     const tab1 = document.getElementById('tabStats1');
     const tab2 = document.getElementById('tabStats2');
     
-    if (tab1) tab1.textContent = `${stats.percent1}%`;
-    if (tab2) tab2.textContent = `${stats.percent2}%`;
+    if (tab1) tab1.textContent = `${stats.filled1} из ${stats.total1} (${stats.percent1}%)`;
+    if (tab2) tab2.textContent = `${stats.filled2} из ${stats.total2} (${stats.percent2}%)`;
 }
 
 // 5. Состояние ошибки (без демо-данных)
