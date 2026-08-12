@@ -136,6 +136,17 @@ function getEntranceStats() {
     };
 }
 
+// 4.6. Обновление статистики в табах (для мобилок)
+function updateTabStats() {
+    const stats = getEntranceStats();
+    
+    const tab1 = document.getElementById('tabStats1');
+    const tab2 = document.getElementById('tabStats2');
+    
+    if (tab1) tab1.textContent = `${stats.percent1}%`;
+    if (tab2) tab2.textContent = `${stats.percent2}%`;
+}
+
 // 5. Состояние ошибки (без демо-данных)
 function showErrorState() {
     houseDatabase = {};
