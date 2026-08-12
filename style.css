@@ -159,13 +159,13 @@ header p {
 
 .apt-num { 
     font-weight: bold; 
-    font-size: 1rem;
+    font-size: 1.1rem;
     line-height: 1.2;
 }
 
 .apt-count { 
     font-size: 0.45rem; 
-    color: #50C5F8;
+    color: #7CD3FA;
     line-height: 1.2;
     margin-top: 5px;      /* Добавляем отступ сверху от номера квартиры */
     display: flex;
