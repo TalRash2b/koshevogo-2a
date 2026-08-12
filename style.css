@@ -159,11 +159,12 @@ header p {
 
 .apt-num { 
     font-weight: bold; 
-    font-size: 0.95rem; 
+    font-size: 1rem;
+    line-height: 1.2;
 }
 
 .apt-count { 
-    font-size: 0.65rem; 
+    font-size: 0.6rem; 
     color: rgba(255,255,255,0.8); 
 }
 
