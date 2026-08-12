@@ -282,15 +282,24 @@ function showInfo(aptNum, floor, residents) {
 
 // 8. Закрытие панели
 function closeInfo() {
-    document.getElementById('overlay').classList.remove('active');
-    document.getElementById('infoPanel').classList.remove('active');
+    const panel = document.getElementById('infoPanel');
+    const overlay = document.getElementById('overlay');
+    
+    panel.classList.remove('active');
+    overlay.classList.remove('active');
+    
+    // Сбрасываем inline-стили, которые могли остаться после свайпа
+    panel.style.bottom = '';
+    panel.style.opacity = '';
+    panel.style.transition = '';
+    panel.style.willChange = '';
+    
+    document.body.style.overflow = '';
+    
     setTimeout(() => {
-        document.getElementById('overlay').style.display = 'none';
+        overlay.style.display = 'none';
     }, 200);
 }
-
-document.getElementById('closeBtn').addEventListener('click', closeInfo);
-document.getElementById('overlay').addEventListener('click', closeInfo);
 
 // 9. Переключение подъездов С АНИМАЦИЕЙ И ОБНОВЛЕНИЕМ ПОЛЗУНКА
 function switchEntrance(num, direction) {
