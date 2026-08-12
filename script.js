@@ -282,7 +282,7 @@ function showInfo(aptNum, floor, residents) {
 
 // 8. Закрытие панели
 function closeInfo() {
-    alert('❌ closeInfo вызвана!');
+    console.log('❌ closeInfo вызвана!');
     const panel = document.getElementById('infoPanel');
     const overlay = document.getElementById('overlay');
 
@@ -616,6 +616,10 @@ document.head.appendChild(style);
     });
     observer.observe(panel, { attributes: true, attributeFilter: ['class'] });
 })();
+
+// Привязываем обработчики
+document.getElementById('closeBtn').addEventListener('click', closeInfo);
+document.getElementById('overlay').addEventListener('click', closeInfo);
 
 // 16. Запуск!
 removeSubtitle();
