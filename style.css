@@ -301,16 +301,10 @@ header p {
     flex-direction: column; 
     border-top: 4px solid var(--accent); 
     border-radius: 20px 20px 0 0;
-    pointer-events: none;
 }
 
 .info-panel.active { 
     bottom: 0; 
-    pointer-events: auto;
-}
-
-.info-panel * {
-    pointer-events: auto;
 }
 
 .panel-drag-handle {
@@ -321,7 +315,6 @@ header p {
     margin: -10px auto 15px auto;
     cursor: grab;
     touch-action: none;
-    pointer-events: auto;
 }
 
 .panel-drag-handle:active {
@@ -329,21 +322,20 @@ header p {
 }
 
 .close-btn { 
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    font-size: 2.2rem;
-    cursor: pointer;
-    z-index: 999;
+    position: absolute; 
+    top: 15px; 
+    right: 20px; 
+    background: none; 
+    border: none; 
+    color: var(--text-muted); 
+    font-size: 2.2rem; 
+    cursor: pointer; 
+    z-index: 10;
     width: 60px;
     height: 60px;
     display: flex;
     align-items: center;
     justify-content: center;
-    pointer-events: auto;
 }
 
 .close-btn:hover {
