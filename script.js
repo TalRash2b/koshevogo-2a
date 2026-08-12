@@ -5,7 +5,7 @@ let houseDatabase = {};
 
 // 1. Загрузка данных
 async function loadDataFromGoogleSheets() {
-    const url = `https://docs.google.comspreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
+    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
     
     showLoadingStatus('Загрузка данных...');
     
@@ -22,7 +22,6 @@ async function loadDataFromGoogleSheets() {
         updateHeader();
         
         applyMobileFix();
-        // Обновляем ползунок после загрузки
         setTimeout(updateTabSlider, 100);
     } catch (error) {
         console.error(error);
@@ -331,7 +330,7 @@ function switchEntrance(num, direction) {
     // Обновляем табы И ползунок
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.getElementById(`tab${num}`).classList.add('active');
-    updateTabSlider(); // 👈 ПОЛЗУНОК ПЕРЕЕЗЖАЕТ
+    updateTabSlider();
     
     setTimeout(() => {
         nextEntrance.classList.add('active');
@@ -405,7 +404,7 @@ function updateTabSlider() {
 // 12. Ресайз
 window.addEventListener('resize', () => {
     applyMobileFix();
-    updateTabSlider(); // 👈 ОБНОВЛЯЕМ ПОЛЗУНОК ПРИ РЕСАЙЗЕ
+    updateTabSlider();
 });
 
 // 13. Убираем "Интерактивная модель дома"
