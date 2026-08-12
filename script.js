@@ -285,21 +285,22 @@ function closeInfo() {
     const panel = document.getElementById('infoPanel');
     const overlay = document.getElementById('overlay');
     
+    // Убираем классы
     panel.classList.remove('active');
     overlay.classList.remove('active');
     
-    // Сбрасываем inline-стили
+    // Сбрасываем inline-стили панели
     panel.style.bottom = '';
     panel.style.opacity = '';
     panel.style.transition = '';
     panel.style.willChange = '';
     panel.style.display = '';
     
+    // Разблокируем скролл
     document.body.style.overflow = '';
     
-    setTimeout(() => {
-        overlay.style.display = 'none';
-    }, 200);
+    // Скрываем оверлей
+    overlay.style.display = 'none';
 }
 
 // 9. Переключение подъездов
