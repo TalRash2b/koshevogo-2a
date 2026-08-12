@@ -164,10 +164,10 @@ header p {
 }
 
 .apt-count { 
-    font-size: 0.5rem; 
+    font-size: 0.45rem; 
     color: rgba(255,255,255,0.8);
     line-height: 1.2;
-    margin-top: 4px;      /* Добавляем отступ сверху от номера квартиры */
+    margin-top: 5px;      /* Добавляем отступ сверху от номера квартиры */
     display: flex;
     justify-content: center;
     gap: 1px;             /* Расстояние между человечками */
