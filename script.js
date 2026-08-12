@@ -282,17 +282,15 @@ function showInfo(aptNum, floor, residents) {
 
 // 8. Закрытие панели
 function closeInfo() {
-    alert('❌ closeInfo вызвана!'); // ← сработает на телефоне
+    alert('❌ closeInfo вызвана!');
     const panel = document.getElementById('infoPanel');
     const overlay = document.getElementById('overlay');
-    const panel = document.getElementById('infoPanel');
-    const overlay = document.getElementById('overlay');
-    
+
     // 1. Убираем классы
     panel.classList.remove('active');
     overlay.classList.remove('active');
-    
-    // 2. Сбрасываем ВСЕ inline-стили панели
+
+    // 2. Сбрасываем inline-стили панели
     panel.style.bottom = '';
     panel.style.opacity = '';
     panel.style.transition = '';
@@ -305,14 +303,14 @@ function closeInfo() {
     panel.style.right = '';
     panel.style.width = '';
     panel.style.height = '';
-    
+
     // 3. Скрываем оверлей
     overlay.style.display = 'none';
-    
+
     // 4. Разблокируем скролл
     document.body.style.overflow = '';
-    
-    // 5. Сброс для свайпа (если осталось)
+
+    // 5. Сброс для свайпа
     isDragging = false;
 }
 
