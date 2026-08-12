@@ -62,49 +62,42 @@ header p {
     background: none;
     border: none;
     color: var(--text-muted);
-    padding: 12px 8px;
-    font-size: 1.1rem;      /* Увеличили базовый размер */
-    font-weight: bold;
+    padding: 14px 8px;
+    font-size: 1.2rem;          /* Все табы крупные */
+    font-weight: 600;
     cursor: pointer;
     border-radius: 6px;
-    transition: all 0.2s ease;
+    transition: background 0.2s ease, color 0.2s ease;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 4px;
     min-width: 0;
+    min-height: 64px;
 }
 
-/* Активный таб */
 .tab-btn.active {
-    background: #0284C7;    /* Твой цвет */
+    background: #0284C7;        /* Только фон и цвет текста */
     color: #ffffff;
-    font-size: 1.3rem;      /* Крупнее, чем у неактивного */
-    padding: 14px 8px;      /* Чуть больше отступы */
+    font-size: 1.2rem;          /* Такой же размер, как у всех */
+    font-weight: 600;           /* Такой же вес, как у всех */
+    padding: 14px 8px;          /* Те же отступы */
 }
 
-/* Статистика в табах */
 .tab-stats {
-    font-size: 0.75rem;      /* Увеличили */
+    font-size: 0.75rem;
     font-weight: 300;
     color: #94a3b8;
-    transition: all 0.2s ease;
+    transition: color 0.2s ease;
 }
 
-/* Активный таб — стата тоже крупнее и светлая */
 .tab-btn.active .tab-stats {
-    font-size: 0.9rem;       /* Крупнее, чем у неактивного */
     color: #ffffff;
     opacity: 0.9;
 }
 
-/* Неактивный таб — стата чуть мельче */
-.tab-btn:not(.active) .tab-stats {
-    font-size: 0.7rem;
-    color: #94a3b8;
-}
-
-/* На мобилках — табы в ряд */
+/* На мобилках — в ряд */
 @media (max-width: 767px) {
     .tabs-container {
         flex-direction: row;
@@ -113,19 +106,16 @@ header p {
         padding: 4px;
     }
     .tab-btn {
-        flex: 1;
+        min-height: 54px;
         padding: 10px 4px;
-        font-size: 1rem;        /* На мобилках чуть меньше */
+        font-size: 1rem;        /* На мобилках чуть меньше, но одинаково */
     }
     .tab-btn.active {
-        font-size: 1.15rem;     /* Активный на мобилках тоже крупнее */
-        padding: 12px 4px;
+        font-size: 1rem;
+        padding: 10px 4px;
     }
     .tab-stats {
         font-size: 0.65rem;
-    }
-    .tab-btn.active .tab-stats {
-        font-size: 0.8rem;
     }
 }
 
