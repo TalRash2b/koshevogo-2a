@@ -512,51 +512,73 @@ document.head.appendChild(style);
 
 // 16. Запуск!
 removeSubtitle();
-// ===== СВАЙП ДЛЯ ЗАКРЫТИЯ ШТОРКИ (с защитой от скролла) =====
+
+// ===== СВАЙП ДЛЯ ЗАКРЫТИЯ ШТОРКИ (по всей поверхности) =====
 (function initSwipeToClose() {
     let startY = 0;
     let currentY = 0;
     let isDragging = false;
     const panel = document.getElementById('infoPanel');
     const overlay = document.getElementById('overlay');
-    const dragHandle = document.querySelector('.panel-drag-handle');
+    let isPanelOpen = false;
+    
+    // Проверяем, открыта ли шторка
+    function isPanelActive() {
+        return panel.classList.contains('active');
+    }
     
     // Начинаем тянуть
     function onStart(e) {
+        if (!isPanelActive()) return;
         const touch = e.touches ? e.touches[0] : e;
         startY = touch.clientY;
         isDragging = true;
         panel.style.transition = 'none';
-        // Блокируем скролл страницы
+        panel.style.willChange = 'transform, opacity';
         document.body.style.overflow = 'hidden';
+        // Убираем стандартный скролл
+        e.preventDefault();
     }
     
     // Тянем
     function onMove(e) {
-        if (!isDragging) return;
-        e.preventDefault(); // Запрещаем скролл
+        if (!isDragging || !isPanelActive()) return;
+        e.preventDefault();
         const touch = e.touches ? e.touches[0] : e;
         currentY = touch.clientY;
         const diff = currentY - startY;
         
         if (diff > 0) {
+            const progress = Math.min(diff / 300, 1);
             panel.style.bottom = `-${diff}px`;
-            panel.style.opacity = 1 - diff / 300;
+            panel.style.opacity = 1 - progress * 0.5;
+            
+            // Если слишком далеко — закрываем
             if (diff > 300) {
                 closeInfo();
                 isDragging = false;
                 document.body.style.overflow = '';
+                panel.style.willChange = '';
             }
         }
     }
     
     // Отпускаем
-    function onEnd() {
-        if (!isDragging) return;
+    function onEnd(e) {
+        if (!isDragging) {
+            // Сбрасываем состояние, если шторка закрыта
+            if (!isPanelActive()) {
+                document.body.style.overflow = '';
+            }
+            return;
+        }
+        
         isDragging = false;
-        document.body.style.overflow = ''; // Разблокируем скролл
+        document.body.style.overflow = '';
+        panel.style.willChange = '';
         
         const currentBottom = parseInt(panel.style.bottom) || 0;
+        
         if (currentBottom < -150) {
             closeInfo();
         } else {
@@ -566,18 +588,26 @@ removeSubtitle();
         }
     }
     
-    // События для тач-устройств
-    if (dragHandle) {
-        dragHandle.addEventListener('touchstart', onStart, { passive: true });
-        document.addEventListener('touchmove', onMove, { passive: false });
-        document.addEventListener('touchend', onEnd, { passive: true });
-    }
+    // События на всю шторку (а не только на ручку)
+    panel.addEventListener('touchstart', onStart, { passive: false });
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd, { passive: false });
     
-    // События для мыши (для тестирования на ПК)
-    if (dragHandle) {
-        dragHandle.addEventListener('mousedown', onStart);
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onEnd);
-    }
+    // События для мыши (для ПК)
+    panel.addEventListener('mousedown', onStart);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    
+    // Следим за открытием/закрытием шторки
+    const observer = new MutationObserver(() => {
+        if (!isPanelActive()) {
+            document.body.style.overflow = '';
+            panel.style.bottom = '';
+            panel.style.opacity = '';
+            panel.style.transition = '';
+            panel.style.willChange = '';
+        }
+    });
+    observer.observe(panel, { attributes: true, attributeFilter: ['class'] });
 })();
 loadDataFromGoogleSheets();
