@@ -59,7 +59,6 @@ header p {
     overflow: hidden;
 }
 
-/* Плавающий индикатор (ползунок) */
 .tab-slider {
     position: absolute;
     bottom: 5px;
@@ -112,7 +111,6 @@ header p {
     opacity: 0.9;
 }
 
-/* Мобильные табы */
 @media (max-width: 767px) {
     .tabs-container {
         flex-direction: row;
@@ -134,7 +132,6 @@ header p {
     }
 }
 
-/* ПК — табы скрыты */
 @media (min-width: 768px) {
     .tabs-container {
         display: none !important;
@@ -166,7 +163,6 @@ header p {
     will-change: transform, opacity;
 }
 
-/* Заголовки подъездов (ПК) */
 .entrance-title {
     display: flex;
     align-items: baseline;
@@ -188,12 +184,10 @@ header p {
     letter-spacing: 0.3px;
 }
 
-/* Мобилки — скрываем заголовки подъездов */
 @media (max-width: 767px) {
     .entrance-title {
         display: none !important;
     }
-    
     .entrance {
         position: absolute;
         top: 0;
@@ -291,7 +285,7 @@ header p {
     color: #94a3b8; 
 }
 
-/* ===== ИНФО-ПАНЕЛЬ ===== */
+/* ===== ИНФО-ПАНЕЛЬ (ИСПРАВЛЕНА) ===== */
 .info-panel { 
     position: fixed; 
     left: 0;
@@ -307,18 +301,31 @@ header p {
     flex-direction: column; 
     border-top: 4px solid var(--accent); 
     border-radius: 20px 20px 0 0;
+    pointer-events: none;
 }
 
 .info-panel.active { 
     bottom: 0; 
+    pointer-events: auto;
+}
+
+.info-panel * {
+    pointer-events: auto;
 }
 
 .panel-drag-handle {
     width: 40px;
-    height: 4px;
+    height: 5px;
     background: #475569;
-    border-radius: 2px;
+    border-radius: 4px;
     margin: -10px auto 15px auto;
+    cursor: grab;
+    touch-action: none;
+    pointer-events: auto;
+}
+
+.panel-drag-handle:active {
+    cursor: grabbing;
 }
 
 .close-btn { 
@@ -328,8 +335,15 @@ header p {
     background: none; 
     border: none; 
     color: var(--text-muted); 
-    font-size: 1.8rem; 
+    font-size: 2rem; 
     cursor: pointer; 
+    z-index: 999;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
 }
 
 .panel-header { 
@@ -353,6 +367,7 @@ header p {
     gap: 12px; 
     overflow-y: auto; 
     flex-grow: 1; 
+    pointer-events: auto;
 }
 
 .resident-card { 
@@ -401,6 +416,7 @@ header p {
     z-index: 99; 
     opacity: 0;
     transition: opacity 0.2s ease;
+    pointer-events: auto;
 }
 
 .overlay.active { 
@@ -432,11 +448,13 @@ header p {
         border-left: 4px solid var(--accent);
         border-radius: 0;
         padding: 40px 30px;
+        pointer-events: none;
     }
     
     .info-panel.active {
         right: 0;
         bottom: 0;
+        pointer-events: auto;
     }
     
     .panel-drag-handle { display: none; }
@@ -492,52 +510,4 @@ header p {
     color: #f8fafc;
     text-shadow: 0 1px 4px rgba(0,0,0,0.6);
     letter-spacing: 0.5px;
-}
-
-/* Шторка — плавное появление */
-.info-panel {
-    transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
-}
-
-/* Полоска для свайпа — делаем чуть больше и заметнее */
-.panel-drag-handle {
-    width: 40px;
-    height: 5px;
-    background: #475569;
-    border-radius: 4px;
-    margin: -10px auto 15px auto;
-    cursor: grab;
-    touch-action: none;
-}
-
-.panel-drag-handle:active {
-    cursor: grabbing;
-}
-
-.close-btn { 
-    position: absolute; 
-    top: 15px; 
-    right: 20px; 
-    background: none; 
-    border: none; 
-    color: var(--text-muted); 
-    font-size: 1.8rem; 
-    cursor: pointer; 
-    z-index: 999;
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.info-panel {
-    pointer-events: none; /* запрещаем клики по панели */
-}
-
-.info-panel .close-btn,
-.info-panel .panel-drag-handle,
-.info-panel .panel-header,
-.info-panel .residents-list {
-    pointer-events: auto; /* разрешаем клики по содержимому */
 }
