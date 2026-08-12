@@ -54,7 +54,7 @@ header p {
     border-radius: 8px;
     margin-bottom: 15px;
     border: 1px solid #475569;
-    gap: 5px; /* Расстояние между кнопками */
+    gap: 5px;
 }
 
 .tab-btn {
@@ -62,65 +62,77 @@ header p {
     background: none;
     border: none;
     color: var(--text-muted);
-    padding: 10px 8px;
-    font-size: 1rem;
+    padding: 12px 8px;
+    font-size: 1.1rem;      /* Увеличили базовый размер */
     font-weight: bold;
     cursor: pointer;
     border-radius: 6px;
     transition: all 0.2s ease;
     display: flex;
-    flex-direction: column;  /* Текст и стата в столбик */
+    flex-direction: column;
     align-items: center;
-    gap: 2px;
-    min-width: 0; /* Чтобы не вылезали */
+    gap: 4px;
+    min-width: 0;
 }
 
+/* Активный таб */
 .tab-btn.active {
-    background: var(--accent);
-    color: var(--bg-color);
+    background: #0284C7;    /* Твой цвет */
+    color: #ffffff;
+    font-size: 1.3rem;      /* Крупнее, чем у неактивного */
+    padding: 14px 8px;      /* Чуть больше отступы */
 }
 
 /* Статистика в табах */
 .tab-stats {
-    font-size: 0.65rem;
+    font-size: 0.75rem;      /* Увеличили */
     font-weight: 300;
     color: #94a3b8;
-    transition: color 0.2s ease;
+    transition: all 0.2s ease;
 }
 
-/* Для активной табы — делаем текст тёмным, чтобы было видно */
+/* Активный таб — стата тоже крупнее и светлая */
 .tab-btn.active .tab-stats {
-    color: var(--bg-color); /* Тёмный цвет (как у фона) */
-    opacity: 0.8;
+    font-size: 0.9rem;       /* Крупнее, чем у неактивного */
+    color: #ffffff;
+    opacity: 0.9;
+}
+
+/* Неактивный таб — стата чуть мельче */
+.tab-btn:not(.active) .tab-stats {
+    font-size: 0.7rem;
+    color: #94a3b8;
 }
 
 /* На мобилках — табы в ряд */
 @media (max-width: 767px) {
     .tabs-container {
-        flex-direction: row; /* Строго в ряд */
+        flex-direction: row;
         flex-wrap: nowrap;
         gap: 4px;
         padding: 4px;
     }
     .tab-btn {
         flex: 1;
-        padding: 8px 4px;
-        font-size: 0.85rem;
-        flex-direction: column;
-        gap: 1px;
+        padding: 10px 4px;
+        font-size: 1rem;        /* На мобилках чуть меньше */
     }
-    .tab-btn .tab-label {
-        font-size: 0.85rem;
+    .tab-btn.active {
+        font-size: 1.15rem;     /* Активный на мобилках тоже крупнее */
+        padding: 12px 4px;
     }
     .tab-stats {
-        font-size: 0.6rem;
+        font-size: 0.65rem;
+    }
+    .tab-btn.active .tab-stats {
+        font-size: 0.8rem;
     }
 }
 
-/* На ПК — табы скрыты, но если вдруг видны — делаем их в ряд */
+/* На ПК — табы скрыты */
 @media (min-width: 768px) {
     .tabs-container {
-        display: none !important; /* Скрываем табы на ПК */
+        display: none !important;
     }
 }
 
