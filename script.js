@@ -113,6 +113,29 @@ function updateHeader() {
     }
 }
 
+// 4.5. Подсчёт статистики по подъездам
+function getEntranceStats() {
+    const total1 = 44; // 1-й подъезд: квартиры 1-44
+    const total2 = 44; // 2-й подъезд: квартиры 45-88
+    
+    let filled1 = 0;
+    let filled2 = 0;
+    
+    for (const aptNum in houseDatabase) {
+        const num = parseInt(aptNum);
+        if (num >= 1 && num <= 44) filled1++;
+        else if (num >= 45 && num <= 88) filled2++;
+    }
+    
+    const percent1 = Math.round((filled1 / total1) * 100);
+    const percent2 = Math.round((filled2 / total2) * 100);
+    
+    return {
+        filled1, total1, percent1,
+        filled2, total2, percent2
+    };
+}
+
 // 5. Состояние ошибки (без демо-данных)
 function showErrorState() {
     houseDatabase = {};
@@ -143,7 +166,21 @@ function buildEntrance(containerId, startApt, entranceNum) {
     const container = document.getElementById(containerId);
     if (!container) return;
     
-    container.innerHTML = `<div class="entrance-title">${entranceNum} Подъезд</div>`;
+    // Получаем статистику
+const stats = getEntranceStats();
+let statsText = '';
+if (entranceNum === 1) {
+    statsText = `${stats.filled1} из ${stats.total1} (${stats.percent1}%)`;
+} else {
+    statsText = `${stats.filled2} из ${stats.total2} (${stats.percent2}%)`;
+}
+
+container.innerHTML = `
+    <div class="entrance-title">
+        ${entranceNum} Подъезд
+        <span class="entrance-stats">${statsText}</span>
+    </div>
+`;
     
     let floorApt = startApt + 40;
     
