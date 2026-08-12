@@ -2,11 +2,11 @@
     --bg-color: #0f172a;
     --panel-bg: #1e293b;
     --floor-bg: #334155;
-    --apt-occupied: #0284c7; /* Голубой вместо зеленого */
+    --apt-occupied: #0284c7;
     --apt-empty: #334155;
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
-    --accent: #38bdf8; /* Яркий неоновый голубой */
+    --accent: #38bdf8;
     --card-bg: #2d3748;
 }
 
@@ -15,7 +15,7 @@
     margin: 0; 
     padding: 0; 
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-    -webkit-tap-highlight-color: transparent; /* Убираем синий блик при клике на мобильных */
+    -webkit-tap-highlight-color: transparent;
 }
 
 body { 
@@ -44,7 +44,7 @@ header p {
     font-size: 0.9rem;
 }
 
-/* Навигация по подъездам (Табы) */
+/* ===== ТАБЫ ===== */
 .tabs-container {
     display: flex;
     width: 100%;
@@ -63,7 +63,7 @@ header p {
     border: none;
     color: var(--text-muted);
     padding: 14px 8px;
-    font-size: 1.2rem;          /* Все табы крупные */
+    font-size: 1.2rem;
     font-weight: 600;
     cursor: pointer;
     border-radius: 6px;
@@ -78,11 +78,8 @@ header p {
 }
 
 .tab-btn.active {
-    background: #0284C7;        /* Только фон и цвет текста */
+    background: #0284C7;
     color: #ffffff;
-    font-size: 1.2rem;          /* Такой же размер, как у всех */
-    font-weight: 600;           /* Такой же вес, как у всех */
-    padding: 14px 8px;          /* Те же отступы */
 }
 
 .tab-stats {
@@ -97,7 +94,7 @@ header p {
     opacity: 0.9;
 }
 
-/* На мобилках — в ряд */
+/* Мобильные табы */
 @media (max-width: 767px) {
     .tabs-container {
         flex-direction: row;
@@ -108,25 +105,25 @@ header p {
     .tab-btn {
         min-height: 54px;
         padding: 10px 4px;
-        font-size: 1rem;        /* На мобилках чуть меньше, но одинаково */
+        font-size: 1rem;
     }
     .tab-btn.active {
-        font-size: 1.2rem;
+        font-size: 1rem; /* Одинаковый размер */
         padding: 10px 4px;
     }
     .tab-stats {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
     }
 }
 
-/* На ПК — табы скрыты */
+/* ПК — табы скрыты */
 @media (min-width: 768px) {
     .tabs-container {
         display: none !important;
     }
 }
 
-/* Сетка дома */
+/* ===== ДОМ ===== */
 .building-container { 
     display: flex; 
     gap: 20px; 
@@ -147,7 +144,7 @@ header p {
     max-width: 450px;
 }
 
-/* === ЗАГОЛОВКИ ПОДЪЕЗДОВ (ПК) === */
+/* Заголовки подъездов (ПК) */
 .entrance-title {
     display: flex;
     align-items: baseline;
@@ -169,22 +166,14 @@ header p {
     letter-spacing: 0.3px;
 }
 
-/* На мобилках — заголовки скрыты */
+/* Мобилки — скрываем заголовки подъездов */
 @media (max-width: 767px) {
     .entrance-title {
         display: none !important;
     }
 }
 
-
-/* На мобилках — заголовки скрыты (стата уже в табах) */
-@media (max-width: 767px) {
-    .entrance-title {
-        display: none !important;
-    }
-}
-
-/* Этажи */
+/* ===== ЭТАЖИ И КВАРТИРЫ ===== */
 .floor { 
     display: flex; 
     align-items: center; 
@@ -212,7 +201,6 @@ header p {
     justify-content: space-between;
 }
 
-/* Квартиры */
 .apartment { 
     flex: 1;
     height: 46px; 
@@ -245,23 +233,23 @@ header p {
     font-size: 0.8rem; 
     color: rgb(177, 231, 252);
     line-height: 1.2;
-    margin-top: 5px;      /* Добавляем отступ сверху от номера квартиры */
+    margin-top: 5px;
     display: flex;
     justify-content: center;
-    gap: 1px;             /* Расстояние между человечками */
+    gap: 1px;
 }
 
 .apartment.empty .apt-count { 
     color: #94a3b8; 
 }
 
-/* Адаптивная шторка информации (Снизу на мобильных, сбоку на ПК) */
+/* ===== ИНФО-ПАНЕЛЬ ===== */
 .info-panel { 
     position: fixed; 
     left: 0;
-    bottom: -100%; /* Прячется вниз */
+    bottom: -100%;
     width: 100vw; 
-    height: 75vh; /* На мобильных открывается на 3/4 экрана */
+    height: 75vh;
     background: #1e293b; 
     box-shadow: 0 -10px 30px rgba(0,0,0,0.7); 
     transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1), right 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
@@ -277,7 +265,6 @@ header p {
     bottom: 0; 
 }
 
-/* Полоска сверху шторки для красоты на мобильных */
 .panel-drag-handle {
     width: 40px;
     height: 4px;
@@ -312,7 +299,6 @@ header p {
     margin-top: 3px; 
 }
 
-/* Карточки жильцов */
 .residents-list { 
     display: flex; 
     flex-direction: column; 
@@ -325,7 +311,7 @@ header p {
     background: var(--card-bg); 
     padding: 14px; 
     border-radius: 8px; 
-    border-left: 4px solid var(--accent); /* Тоже голубой маркер */
+    border-left: 4px solid var(--accent);
 }
 
 .resident-card.no-name { 
@@ -354,7 +340,7 @@ header p {
     color: var(--text-muted); 
 }
 
-/* Заднее затемнение */
+/* ===== ОВЕРЛЕЙ ===== */
 .overlay { 
     position: fixed; 
     top: 0; 
@@ -374,15 +360,13 @@ header p {
     opacity: 1;
 }
 
-/* --- АДАПТИВНОСТЬ ДЛЯ БОЛЬШИХ ЭКРАНОВ (ПК) --- */
+/* ===== АДАПТИВНОСТЬ ПК ===== */
 @media (min-width: 768px) {
     body { padding: 30px; }
     header h1 { font-size: 2.3rem; }
     
-    /* Скрываем переключатель табов на ПК, так как там видны оба подъезда сразу */
     .tabs-container { display: none; }
-    
-    .entrance { display: flex !important; } /* Показываем оба подъезда */
+    .entrance { display: flex; }
     
     .apartment:hover { 
         transform: scale(1.08); 
@@ -390,7 +374,6 @@ header p {
         box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); 
     }
     
-    /* На ПК шторка превращается в классическую боковую панель */
     .info-panel {
         left: auto;
         right: -420px;
@@ -411,16 +394,16 @@ header p {
     .panel-drag-handle { display: none; }
 }
 
-/* Фикс для цвета телефонов на мобилках */
+/* ===== ФИКСЫ ===== */
 .res-phone,
 .res-phone:visited,
 .res-phone:hover,
 .res-phone:active {
-    color: #38bdf8 !important; /* Или любой другой цвет, который хочешь */
+    color: #38bdf8 !important;
     text-decoration: none;
 }
 
-/* Прогресс-бар */
+/* ===== ПРОГРЕСС-БАР ===== */
 .progress-wrapper {
     width: 100%;
     max-width: 450px;
