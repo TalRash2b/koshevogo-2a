@@ -285,22 +285,32 @@ function closeInfo() {
     const panel = document.getElementById('infoPanel');
     const overlay = document.getElementById('overlay');
     
-    // Убираем классы
+    // 1. Убираем классы
     panel.classList.remove('active');
     overlay.classList.remove('active');
     
-    // Сбрасываем inline-стили панели
+    // 2. Сбрасываем ВСЕ inline-стили панели
     panel.style.bottom = '';
     panel.style.opacity = '';
     panel.style.transition = '';
     panel.style.willChange = '';
+    panel.style.transform = '';
     panel.style.display = '';
+    panel.style.position = '';
+    panel.style.top = '';
+    panel.style.left = '';
+    panel.style.right = '';
+    panel.style.width = '';
+    panel.style.height = '';
     
-    // Разблокируем скролл
+    // 3. Скрываем оверлей
+    overlay.style.display = 'none';
+    
+    // 4. Разблокируем скролл
     document.body.style.overflow = '';
     
-    // Скрываем оверлей
-    overlay.style.display = 'none';
+    // 5. Сброс для свайпа (если осталось)
+    isDragging = false;
 }
 
 // 9. Переключение подъездов
