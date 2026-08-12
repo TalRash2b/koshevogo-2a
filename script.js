@@ -282,6 +282,9 @@ function showInfo(aptNum, floor, residents) {
 
 // 8. Закрытие панели
 function closeInfo() {
+    alert('❌ closeInfo вызвана!'); // ← сработает на телефоне
+    const panel = document.getElementById('infoPanel');
+    const overlay = document.getElementById('overlay');
     const panel = document.getElementById('infoPanel');
     const overlay = document.getElementById('overlay');
     
