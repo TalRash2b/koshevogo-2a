@@ -166,9 +166,12 @@ function buildEntrance(containerId, startApt, entranceNum) {
             
             const aptDiv = document.createElement('div');
             aptDiv.className = `apartment ${empty ? 'empty' : ''}`;
+            // Генерируем иконки людей (Font Awesome)
+            const peopleIcons = empty ? '' : `<i class="fas fa-user" style="color: #38bdf8; font-size: 0.8rem; margin: 0 1px;"></i>`.repeat(residents.length);
+
             aptDiv.innerHTML = `
                 <div class="apt-num">${aptNum}</div>
-                <div class="apt-count">${empty ? '' : residents.length + ' чел.'}</div>
+                <div class="apt-count">${peopleIcons}</div>
             `;
             aptDiv.addEventListener('click', () => showInfo(aptNum, floor, residents));
             aptGrid.appendChild(aptDiv);
