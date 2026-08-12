@@ -164,7 +164,7 @@ header p {
 }
 
 .apt-count { 
-    font-size: 0.45rem; 
+    font-size: 0.75rem; 
     color: rgb(158, 223, 251) !important;
     line-height: 1.2;
     margin-top: 5px;      /* Добавляем отступ сверху от номера квартиры */
