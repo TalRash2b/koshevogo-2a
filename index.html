@@ -31,10 +31,14 @@
 </header>
     
     <!-- Переключатель подъездов для мобильных экранов -->
-    <div class="tabs-container">
-        <button class="tab-btn active" id="tab1" onclick="switchEntrance(1)">1 Подъезд</button>
-        <button class="tab-btn" id="tab2" onclick="switchEntrance(2)">2 Подъезд</button>
-    </div>
+    <button class="tab-btn active" id="tab1" onclick="switchEntrance(1)">
+        <span class="tab-label">1 Подъезд</span>
+        <span class="tab-stats" id="tabStats1"></span>
+    </button>
+    <button class="tab-btn" id="tab2" onclick="switchEntrance(2)">
+        <span class="tab-label">2 Подъезд</span>
+        <span class="tab-stats" id="tabStats2"></span>
+    </button>
 
     <div class="building-container">
         <!-- 1 Подъезд -->
