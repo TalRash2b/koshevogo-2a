@@ -282,15 +282,12 @@ function showInfo(aptNum, floor, residents) {
 
 // 8. Закрытие панели
 function closeInfo() {
-    console.log('❌ closeInfo вызвана!');
     const panel = document.getElementById('infoPanel');
     const overlay = document.getElementById('overlay');
 
-    // 1. Убираем классы
     panel.classList.remove('active');
     overlay.classList.remove('active');
 
-    // 2. Сбрасываем inline-стили панели
     panel.style.bottom = '';
     panel.style.opacity = '';
     panel.style.transition = '';
@@ -304,13 +301,8 @@ function closeInfo() {
     panel.style.width = '';
     panel.style.height = '';
 
-    // 3. Скрываем оверлей
     overlay.style.display = 'none';
-
-    // 4. Разблокируем скролл
     document.body.style.overflow = '';
-
-    // 5. Сброс для свайпа
     isDragging = false;
 }
 
@@ -546,7 +538,7 @@ document.head.appendChild(style);
         isDragging = true;
         panel.style.transition = 'none';
         panel.style.willChange = 'transform, opacity';
-        document.body.style.overflow = 'hidden';
+        // document.body.style.overflow = 'hidden'; // Убрал, чтобы не мешать крестику
         e.preventDefault();
     }
     
@@ -620,21 +612,6 @@ document.head.appendChild(style);
 // Привязываем обработчики
 document.getElementById('closeBtn').addEventListener('click', closeInfo);
 document.getElementById('overlay').addEventListener('click', closeInfo);
-
-// ===== ТЕСТ: КРЕСТИК =====
-setTimeout(() => {
-    const btn = document.getElementById('closeBtn');
-    console.log('🔍 Крестик найден?', btn);
-    if (btn) {
-        console.log('✅ Крестик есть в DOM');
-        btn.onclick = function() {
-            console.log('🟢 Крестик нажали!');
-            closeInfo();
-        };
-    } else {
-        console.log('❌ Крестик НЕ найден в DOM');
-    }
-}, 500);
 
 // 16. Запуск!
 removeSubtitle();
