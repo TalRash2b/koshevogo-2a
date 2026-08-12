@@ -530,3 +530,14 @@ header p {
     align-items: center;
     justify-content: center;
 }
+
+.info-panel {
+    pointer-events: none; /* запрещаем клики по панели */
+}
+
+.info-panel .close-btn,
+.info-panel .panel-drag-handle,
+.info-panel .panel-header,
+.info-panel .residents-list {
+    pointer-events: auto; /* разрешаем клики по содержимому */
+}
