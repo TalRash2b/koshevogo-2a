@@ -187,8 +187,10 @@ if (entranceNum === 1) {
     statsText = `${stats.filled2} из ${stats.total2} (${stats.percent2}%)`;
 }
 
+// (скрываем на мобилках):
+const isMobile = window.innerWidth < 768;
 container.innerHTML = `
-    <div class="entrance-title">
+    <div class="entrance-title" style="${isMobile ? 'display: none;' : ''}">
         ${entranceNum} Подъезд
         <span class="entrance-stats">${statsText}</span>
     </div>
