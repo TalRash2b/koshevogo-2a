@@ -531,16 +531,14 @@ document.head.appendChild(style);
         return panel.classList.contains('active');
     }
     
-    function onStart(e) {
-        if (!isPanelActive()) return;
-        const touch = e.touches ? e.touches[0] : e;
-        startY = touch.clientY;
-        isDragging = true;
-        panel.style.transition = 'none';
-        panel.style.willChange = 'transform, opacity';
-        // document.body.style.overflow = 'hidden'; // Убрал, чтобы не мешать крестику
-        e.preventDefault();
-    }
+function onStart(e) {
+    if (!isPanelActive()) return;
+    const touch = e.touches ? e.touches[0] : e;
+    startY = touch.clientY;
+    isDragging = true;
+    panel.style.transition = 'none';
+    e.preventDefault();
+}
     
     function onMove(e) {
         if (!isDragging || !isPanelActive()) return;
