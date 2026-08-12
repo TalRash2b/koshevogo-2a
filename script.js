@@ -512,4 +512,61 @@ document.head.appendChild(style);
 
 // 16. Запуск!
 removeSubtitle();
+// ===== СВАЙП ДЛЯ ЗАКРЫТИЯ ШТОРКИ =====
+(function initSwipeToClose() {
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+    const panel = document.getElementById('infoPanel');
+    const overlay = document.getElementById('overlay');
+    const dragHandle = document.querySelector('.panel-drag-handle');
+    
+    // Начинаем тянуть
+    function onStart(e) {
+        const touch = e.touches ? e.touches[0] : e;
+        startY = touch.clientY;
+        isDragging = true;
+        panel.style.transition = 'none';
+    }
+    
+    // Тянем
+    function onMove(e) {
+        if (!isDragging) return;
+        const touch = e.touches ? e.touches[0] : e;
+        currentY = touch.clientY;
+        const diff = currentY - startY;
+        
+        if (diff > 0) {
+            panel.style.bottom = `-${diff}px`;
+            panel.style.opacity = 1 - diff / 300;
+            if (diff > 300) {
+                closeInfo();
+                isDragging = false;
+            }
+        }
+    }
+    
+    // Отпускаем
+    function onEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        panel.style.transition = 'bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease';
+        panel.style.bottom = '0';
+        panel.style.opacity = '1';
+    }
+    
+    // События для тач-устройств
+    if (dragHandle) {
+        dragHandle.addEventListener('touchstart', onStart, { passive: true });
+        document.addEventListener('touchmove', onMove, { passive: false });
+        document.addEventListener('touchend', onEnd, { passive: true });
+    }
+    
+    // События для мыши (для тестирования на ПК)
+    if (dragHandle) {
+        dragHandle.addEventListener('mousedown', onStart);
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onEnd);
+    }
+})();
 loadDataFromGoogleSheets();
