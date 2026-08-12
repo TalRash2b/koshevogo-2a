@@ -512,7 +512,7 @@ document.head.appendChild(style);
 
 // 16. Запуск!
 removeSubtitle();
-// ===== СВАЙП ДЛЯ ЗАКРЫТИЯ ШТОРКИ =====
+// ===== СВАЙП ДЛЯ ЗАКРЫТИЯ ШТОРКИ (с защитой от скролла) =====
 (function initSwipeToClose() {
     let startY = 0;
     let currentY = 0;
@@ -527,11 +527,14 @@ removeSubtitle();
         startY = touch.clientY;
         isDragging = true;
         panel.style.transition = 'none';
+        // Блокируем скролл страницы
+        document.body.style.overflow = 'hidden';
     }
     
     // Тянем
     function onMove(e) {
         if (!isDragging) return;
+        e.preventDefault(); // Запрещаем скролл
         const touch = e.touches ? e.touches[0] : e;
         currentY = touch.clientY;
         const diff = currentY - startY;
@@ -542,6 +545,7 @@ removeSubtitle();
             if (diff > 300) {
                 closeInfo();
                 isDragging = false;
+                document.body.style.overflow = '';
             }
         }
     }
@@ -550,9 +554,16 @@ removeSubtitle();
     function onEnd() {
         if (!isDragging) return;
         isDragging = false;
-        panel.style.transition = 'bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease';
-        panel.style.bottom = '0';
-        panel.style.opacity = '1';
+        document.body.style.overflow = ''; // Разблокируем скролл
+        
+        const currentBottom = parseInt(panel.style.bottom) || 0;
+        if (currentBottom < -150) {
+            closeInfo();
+        } else {
+            panel.style.transition = 'bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease';
+            panel.style.bottom = '0';
+            panel.style.opacity = '1';
+        }
     }
     
     // События для тач-устройств
