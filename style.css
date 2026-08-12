@@ -513,3 +513,7 @@ header p {
 .panel-drag-handle:active {
     cursor: grabbing;
 }
+.close-btn {
+    position: relative;
+    z-index: 10;
+}
