@@ -329,23 +329,30 @@ header p {
 }
 
 .close-btn { 
-    position: absolute; 
-    top: 10px; 
-    right: 10px; 
-    background: rgba(255,255,255,0.1); 
+    position: fixed; 
+    top: 20px; 
+    right: 20px; 
+    background: none; 
     border: none; 
-    color: var(--text-muted); 
-    font-size: 2rem; 
+    color: #94a3b8; 
+    font-size: 2.2rem; 
     cursor: pointer; 
-    z-index: 999;
-    width: 60px;
-    height: 60px;
+    z-index: 1000;
+    width: 50px;
+    height: 50px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    pointer-events: auto;
-    background: rgba(0,0,0,0.3);
+    transition: background 0.2s ease;
+}
+
+.close-btn:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.close-btn:active {
+    background: rgba(255,255,255,0.1);
 }
 
 .panel-header { 
