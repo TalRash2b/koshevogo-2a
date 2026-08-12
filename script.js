@@ -202,7 +202,7 @@ function showInfo(aptNum, floor, residents) {
             
             const nameDiv = document.createElement('div');
             nameDiv.className = 'res-name';
-            nameDiv.textContent = r.fio;
+            nameDiv.innerHTML = `<i class="fas fa-user" style="color: #38bdf8; margin-right: 8px; width: 14px;"></i> ${r.fio}`;
             card.appendChild(nameDiv);
             
             if (r.phones && r.phones.length > 0) {
