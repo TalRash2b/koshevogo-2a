@@ -282,6 +282,7 @@ function showInfo(aptNum, floor, residents) {
 
 // 8. Закрытие панели
 function closeInfo() {
+    alert('Крестик сработал!');
     console.log('❌ closeInfo вызвана!');
     const panel = document.getElementById('infoPanel');
     const overlay = document.getElementById('overlay');
