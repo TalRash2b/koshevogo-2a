@@ -355,9 +355,9 @@ function switchEntrance(num, direction) {
     nextEntrance.style.position = 'relative';
     nextEntrance.style.pointerEvents = 'auto';
 
-    nextEntrance.style.transition = '';
-    nextEntrance.style.transform = '';
-    nextEntrance.style.opacity = '';
+    nextEntrance.style.transition = 'none';
+    nextEntrance.style.transform = 'translateX(0)';
+    nextEntrance.style.opacity = '1';
 
 }, 400);
 }
