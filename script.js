@@ -494,7 +494,7 @@ document.head.appendChild(style);
     let currentEntrance = null;
     let isDragging = false;
     let isHorizontalSwipe = false;
-    let isDirectionLocked = false; // Флаг: направление жеста определено
+    let isDirectionLocked = false;
 
     document.addEventListener('touchstart', function(e) {
         if (window.innerWidth >= 768) return;
@@ -519,34 +519,28 @@ document.head.appendChild(style);
         const diffX = touch.clientX - touchStartX;
         const diffY = touch.clientY - touchStartY;
 
-        // 1. Определяем направление один раз после микро-смещения (8px)
         if (!isDirectionLocked) {
             const absX = Math.abs(diffX);
             const absY = Math.abs(diffY);
 
             if (absX > 8 || absY > 8) {
                 isDirectionLocked = true;
-                // Считаем свайпом, только если горизонтальное движение явно больше вертикального
                 isHorizontalSwipe = absX > absY;
             }
         }
 
-        // Если это вертикальный скролл страницы — выходим и даем странице свободно скроллиться
         if (!isHorizontalSwipe) return;
 
-        // 2. Это горизонтальный свайп: блокируем скролл страницы
         if (e.cancelable) e.preventDefault();
 
         const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
 
-        // Ограничиваем свайп за края (нельзя свипать вправо на 1-м и влево на 2-м)
         if ((currentNum === 1 && diffX > 0) || (currentNum === 2 && diffX < 0)) return;
 
         const nextNum = currentNum === 1 ? 2 : 1;
         const nextEntrance = document.getElementById(`entrance${nextNum}`);
         if (!nextEntrance) return;
 
-        // 3. Тянем подъезды вслед за пальцем
         nextEntrance.style.cssText = `display: flex; position: absolute; top: 0; left: 0; width: 100%; z-index: 5; opacity: 1; pointer-events: none; transition: none;`;
 
         currentEntrance.style.transition = 'none';
@@ -575,53 +569,54 @@ document.head.appendChild(style);
         const diffX = touch.clientX - touchStartX;
         const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
 
-        // Если свайпнули слабо (< 80px) — возвращаем всё назад
+        // Отменяем свайп, если протянули мало (< 80px)
         if (Math.abs(diffX) < 80) {
-            currentEntrance.style.transition = 'transform 0.3s ease';
-            currentEntrance.style.transform = '';
+            currentEntrance.style.transition = 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)';
+            currentEntrance.style.transform = 'translateX(0)';
 
             const nextNum = currentNum === 1 ? 2 : 1;
             const nextEntrance = document.getElementById(`entrance${nextNum}`);
 
             if (nextEntrance) {
-                nextEntrance.style.transition = 'transform 0.3s ease';
+                nextEntrance.style.transition = 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)';
                 nextEntrance.style.transform = currentNum === 1 ? 'translateX(100%)' : 'translateX(-100%)';
             }
 
             setTimeout(() => {
                 if (nextEntrance) nextEntrance.style.cssText = 'display: none;';
                 currentEntrance.style.cssText = 'display: flex; position: relative;';
-            }, 300);
+            }, 250);
 
             return;
         }
 
-        // Если свайпнули достаточно сильно — докручиваем до следующего подъезда
+        // Завершаем свайп переходом на следующий подъезд
         const nextNum = diffX < 0 ? 2 : 1;
         if (currentNum === nextNum) return;
 
         const nextEntrance = document.getElementById(`entrance${nextNum}`);
         if (!nextEntrance) return;
 
-        currentEntrance.style.transition = 'transform 0.3s ease';
-        nextEntrance.style.transition = 'transform 0.3s ease';
+        // Плавно дотягиваем оба подъезда до 0 и -100%/100%
+        currentEntrance.style.transition = 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)';
+        nextEntrance.style.transition = 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)';
 
         currentEntrance.style.transform = nextNum === 2 ? 'translateX(-100%)' : 'translateX(100%)';
         nextEntrance.style.transform = 'translateX(0)';
 
+        // Меняем активный таб сразу
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(`tab${nextNum}`).classList.add('active');
+        updateTabSlider();
+
+        // По окончанию плавного доезда фиксируем положение в DOM без перерисовок
         setTimeout(() => {
             currentEntrance.classList.remove('active');
             currentEntrance.style.cssText = 'display: none;';
 
             nextEntrance.classList.add('active');
-            nextEntrance.style.cssText = 'display: flex; position: relative; pointer-events: auto;';
-
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(`tab${nextNum}`).classList.add('active');
-
-            updateTabSlider();
-            applyMobileFix();
-        }, 300);
+            nextEntrance.style.cssText = 'display: flex; position: relative; pointer-events: auto; transform: none;';
+        }, 250);
 
         if (navigator.vibrate) navigator.vibrate(10);
     }, { passive: true });
