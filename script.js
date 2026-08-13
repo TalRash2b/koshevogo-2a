@@ -504,237 +504,142 @@ style.textContent = `
 document.head.appendChild(style);
 
 // ===== СВАЙП ДЛЯ ПЕРЕКЛЮЧЕНИЯ ПОДЪЕЗДОВ =====
-// ===== СВАЙП ДЛЯ ПЕРЕКЛЮЧЕНИЯ ПОДЪЕЗДОВ (плавный 1:1) =====
+// ===== СВАЙП ДЛЯ ПЕРЕКЛЮЧЕНИЯ ПОДЪЕЗДОВ (ТВОЯ РАБОЧАЯ ВЕРСИЯ) =====
 (function initSwipe() {
-    let startX = 0;
-    let startY = 0;
-    let currentX = 0;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+    let currentEntrance = null;
     let isDragging = false;
-    let isHorizontal = false;
-    let directionLocked = false;
-    let activeEntrance = null;
-    let nextEntrance = null;
-    let containerWidth = 0;
-    let maxDrag = 0;
-
-    function getEntrance(num) {
-        return document.getElementById(`entrance${num}`);
-    }
-
-    function getActiveNum() {
-        const el = document.querySelector('.entrance.active');
-        return el ? (el.id === 'entrance1' ? 1 : 2) : 1;
-    }
-
-    function resetStyles(el) {
-        if (!el) return;
-        el.style.transition = '';
-        el.style.transform = '';
-        el.style.opacity = '';
-        el.style.position = '';
-        el.style.top = '';
-        el.style.left = '';
-        el.style.width = '';
-        el.style.display = '';
-        el.style.pointerEvents = '';
-        el.style.zIndex = '';
-    }
+    let isHorizontalSwipe = false;
+    let isDirectionLocked = false;
 
     document.addEventListener('touchstart', function(e) {
         if (window.innerWidth >= 768) return;
         if (e.target.closest('#infoPanel, #overlay, .close-btn, a, button')) return;
-
+        
         const touch = e.touches[0];
-        startX = touch.clientX;
-        startY = touch.clientY;
-        currentX = startX;
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        touchStartTime = Date.now();
+
+        currentEntrance = document.querySelector('.entrance.active');
+        if (!currentEntrance) return;
+
         isDragging = true;
-        isHorizontal = false;
-        directionLocked = false;
-
-        activeEntrance = document.querySelector('.entrance.active');
-        if (!activeEntrance) {
-            isDragging = false;
-            return;
-        }
-
-        const activeNum = getActiveNum();
-        const nextNum = activeNum === 1 ? 2 : 1;
-        nextEntrance = getEntrance(nextNum);
-
-        containerWidth = document.querySelector('.building-container').offsetWidth;
-        maxDrag = containerWidth * 0.7;
-
-        // Подготавливаем следующий подъезд (он пока невидим)
-        if (nextEntrance) {
-            nextEntrance.style.display = 'flex';
-            nextEntrance.style.position = 'absolute';
-            nextEntrance.style.top = '0';
-            nextEntrance.style.left = '0';
-            nextEntrance.style.width = '100%';
-            nextEntrance.style.zIndex = '5';
-            nextEntrance.style.pointerEvents = 'none';
-            nextEntrance.style.transition = 'none';
-            nextEntrance.style.opacity = '1';
-            // Начальное положение — за границей экрана
-            nextEntrance.style.transform = activeNum === 1 ? 'translateX(100%)' : 'translateX(-100%)';
-        }
-
-        activeEntrance.style.transition = 'none';
-        activeEntrance.style.position = 'relative';
-        activeEntrance.style.zIndex = '6';
-        activeEntrance.style.transform = 'translateX(0)';
+        isHorizontalSwipe = false;
+        isDirectionLocked = false;
     }, { passive: true });
 
     document.addEventListener('touchmove', function(e) {
-        if (!isDragging || !activeEntrance || window.innerWidth >= 768) return;
+        if (!isDragging || !currentEntrance || window.innerWidth >= 768) return;
 
         const touch = e.touches[0];
-        const deltaX = touch.clientX - startX;
-        const deltaY = touch.clientY - startY;
+        const diffX = touch.clientX - touchStartX;
+        const diffY = touch.clientY - touchStartY;
 
-        // Определяем направление после небольшого смещения
-        if (!directionLocked) {
-            if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
-                directionLocked = true;
-                isHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
+        if (!isDirectionLocked) {
+            const absX = Math.abs(diffX);
+            const absY = Math.abs(diffY);
+            if (absX > 6 || absY > 6) {
+                isDirectionLocked = true;
+                isHorizontalSwipe = absX > absY;
             }
         }
 
-        if (!isHorizontal) return;
+        if (!isHorizontalSwipe) return;
 
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
 
-        const activeNum = getActiveNum();
-        let newX = deltaX;
+        const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
 
-        // Ограничиваем движение (нельзя тянуть назад за край)
-        if (activeNum === 1 && newX > 0) newX = 0;
-        if (activeNum === 2 && newX < 0) newX = 0;
+        if ((currentNum === 1 && diffX > 0) || (currentNum === 2 && diffX < 0)) return;
 
-        // Ограничиваем максимальный отрыв
-        const clampedX = Math.max(-maxDrag, Math.min(maxDrag, newX));
+        const nextNum = currentNum === 1 ? 2 : 1;
+        const nextEntrance = document.getElementById(`entrance${nextNum}`);
+        if (!nextEntrance) return;
 
-        // Двигаем активный подъезд
-        activeEntrance.style.transform = `translateX(${clampedX}px)`;
+        nextEntrance.style.cssText = `display: flex; position: absolute; top: 0; left: 0; width: 100%; z-index: 5; opacity: 1; pointer-events: none; transition: none;`;
 
-        // Двигаем следующий подъезд синхронно
-        if (nextEntrance) {
-            const nextOffset = activeNum === 1 ? containerWidth : -containerWidth;
-            const progress = Math.abs(clampedX) / maxDrag;
-            const nextPos = nextOffset + clampedX * 0.7; // чуть медленнее, чтобы был эффект глубины
-            nextEntrance.style.transform = `translateX(${nextPos}px)`;
-            // Плавно проявляем
-            nextEntrance.style.opacity = Math.min(progress * 1.2, 1);
-        }
+        currentEntrance.style.transition = 'none';
+        currentEntrance.style.position = 'relative';
+        currentEntrance.style.zIndex = '6';
+        currentEntrance.style.transform = `translateX(${diffX}px)`;
 
-        currentX = touch.clientX;
+        const offset = diffX > 0 ? -window.innerWidth : window.innerWidth;
+        nextEntrance.style.transform = `translateX(${diffX + offset}px)`;
     }, { passive: false });
 
     document.addEventListener('touchend', function(e) {
-        if (!isDragging || !activeEntrance) {
+        if (!isDragging || !currentEntrance) {
             isDragging = false;
             return;
         }
 
-        const touch = e.changedTouches[0];
-        const deltaX = touch.clientX - startX;
-        const velocity = deltaX / (Date.now() - touchStartTime || 1);
-        const absDelta = Math.abs(deltaX);
-        const threshold = containerWidth * 0.2;
-
-        let shouldSwitch = false;
-        let direction = 0;
-
-        if (isHorizontal) {
-            if (absDelta > threshold || Math.abs(velocity) > 0.6) {
-                shouldSwitch = true;
-                direction = deltaX < 0 ? 1 : -1; // 1 = влево, -1 = вправо
-            }
-        }
-
-        const activeNum = getActiveNum();
-        let nextNum = activeNum;
-
-        if (shouldSwitch && isHorizontal) {
-            if (activeNum === 1 && direction === 1) nextNum = 2;
-            else if (activeNum === 2 && direction === -1) nextNum = 1;
-            else shouldSwitch = false;
-        }
-
-        // Плавное завершение
-        if (shouldSwitch && nextNum !== activeNum) {
-            const target = getEntrance(nextNum);
-            if (target) {
-                // Анимация ухода активного
-                activeEntrance.style.transition = 'transform 0.35s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.3s ease';
-                activeEntrance.style.transform = activeNum === 1 ? 'translateX(-100%)' : 'translateX(100%)';
-                activeEntrance.style.opacity = '0';
-
-                // Анимация прихода нового
-                target.style.transition = 'transform 0.35s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.3s ease';
-                target.style.transform = 'translateX(0)';
-                target.style.opacity = '1';
-                target.style.pointerEvents = 'auto';
-
-                // Обновляем табы
-                document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-                document.getElementById(`tab${nextNum}`).classList.add('active');
-                updateTabSlider();
-
-                setTimeout(() => {
-                    activeEntrance.classList.remove('active');
-                    activeEntrance.style.display = 'none';
-                    resetStyles(activeEntrance);
-
-                    target.classList.add('active');
-                    target.style.position = 'relative';
-                    target.style.zIndex = '1';
-                    resetStyles(target);
-                    target.style.display = 'flex';
-
-                    applyMobileFix();
-                }, 380);
-            }
-        } else {
-            // Возврат на место
-            activeEntrance.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease';
-            activeEntrance.style.transform = 'translateX(0)';
-            activeEntrance.style.opacity = '1';
-
-            if (nextEntrance) {
-                const nextNum = activeNum === 1 ? 2 : 1;
-                const target = getEntrance(nextNum);
-                if (target) {
-                    target.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease';
-                    target.style.transform = activeNum === 1 ? 'translateX(100%)' : 'translateX(-100%)';
-                    target.style.opacity = '0';
-                }
-            }
-
-            setTimeout(() => {
-                if (nextEntrance) {
-                    nextEntrance.style.display = 'none';
-                    resetStyles(nextEntrance);
-                }
-                resetStyles(activeEntrance);
-                activeEntrance.style.display = 'flex';
-                applyMobileFix();
-            }, 300);
+        if (!isHorizontalSwipe) {
+            isDragging = false;
+            return;
         }
 
         isDragging = false;
-        activeEntrance = null;
-        nextEntrance = null;
-    }, { passive: true });
 
-    // Сохраняем время для расчёта скорости
-    let touchStartTime = 0;
-    document.addEventListener('touchstart', function(e) {
-        touchStartTime = Date.now();
+        const touch = e.changedTouches[0];
+        const diffX = touch.clientX - touchStartX;
+        const duration = Date.now() - touchStartTime;
+        const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
+
+        const isFlick = duration < 200 && Math.abs(diffX) > 20;
+        const isLongSwipe = Math.abs(diffX) >= 60;
+        const shouldSwitch = isFlick || isLongSwipe;
+
+        if (!shouldSwitch) {
+            currentEntrance.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            currentEntrance.style.transform = 'translateX(0)';
+
+            const nextNum = currentNum === 1 ? 2 : 1;
+            const nextEntrance = document.getElementById(`entrance${nextNum}`);
+            if (nextEntrance) {
+                nextEntrance.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                nextEntrance.style.transform = currentNum === 1 ? 'translateX(100%)' : 'translateX(-100%)';
+            }
+
+            setTimeout(() => {
+                if (nextEntrance) nextEntrance.style.cssText = 'display: none;';
+                currentEntrance.style.cssText = 'display: flex; position: relative;';
+            }, 200);
+            return;
+        }
+
+        const nextNum = diffX < 0 ? 2 : 1;
+        if (currentNum === nextNum) return;
+
+        const nextEntrance = document.getElementById(`entrance${nextNum}`);
+        if (!nextEntrance) return;
+
+        const animDuration = isFlick ? '0.18s' : '0.22s';
+        const timingFunc = 'cubic-bezier(0.1, 0.9, 0.2, 1)';
+
+        currentEntrance.style.transition = `transform ${animDuration} ${timingFunc}`;
+        nextEntrance.style.transition = `transform ${animDuration} ${timingFunc}`;
+
+        currentEntrance.style.transform = nextNum === 2 ? 'translateX(-100%)' : 'translateX(100%)';
+        nextEntrance.style.transform = 'translateX(0)';
+
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(`tab${nextNum}`).classList.add('active');
+        updateTabSlider();
+
+        setTimeout(() => {
+            currentEntrance.classList.remove('active');
+            currentEntrance.style.cssText = 'display: none;';
+
+            nextEntrance.classList.add('active');
+            nextEntrance.style.cssText = 'display: flex; position: relative; pointer-events: auto;';
+        }, isFlick ? 180 : 220);
+
+        if (navigator.vibrate) navigator.vibrate(10);
     }, { passive: true });
 })();
-
 
 
 // ===== СВАЙП ДЛЯ ЗАКРЫТИЯ ШТОРКИ =====
