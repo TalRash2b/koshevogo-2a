@@ -359,7 +359,7 @@ function switchEntrance(num, direction) {
 // 10. Мобильный фикс
 function applyMobileFix() {
     const isMobile = window.innerWidth < 768;
-    
+
     if (isMobile) {
         const activeTab = document.querySelector('.tab-btn.active');
 
