@@ -342,17 +342,17 @@ function switchEntrance(num, direction) {
     updateTabSlider();
     
     setTimeout(() => {
+        currentEntrance.style.display = 'none';
+    
+        currentEntrance.classList.remove('active', 'exit-left', 'exit-right');
+    
         nextEntrance.classList.add('active');
         nextEntrance.style.position = '';
         nextEntrance.style.pointerEvents = 'auto';
         nextEntrance.style.transform = '';
         nextEntrance.style.opacity = '';
         nextEntrance.style.transition = '';
-        
-        currentEntrance.classList.remove('exit-left', 'exit-right');
-        currentEntrance.style.display = 'none';
-    applyMobileFix();
-}, 500);
+    }, 500);
 }
 
 // 10. Мобильный фикс
