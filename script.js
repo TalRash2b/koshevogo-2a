@@ -360,29 +360,29 @@ function applyMobileFix() {
     const isMobile = window.innerWidth < 768;
     
     if (isMobile) {
-    const activeTab = document.querySelector('.tab-btn.active');
+        const activeTab = document.querySelector('.tab-btn.active');
 
-    if (activeTab) {
-        const num = activeTab.id === 'tab1' ? 1 : 2;
-        const activeEntrance = document.getElementById(`entrance${num}`);
+        if (activeTab) {
+            const num = activeTab.id === 'tab1' ? 1 : 2;
+            const activeEntrance = document.getElementById(`entrance${num}`);
 
-        if (activeEntrance) {
-            document.querySelectorAll('.entrance').forEach(el => {
-                if (el !== activeEntrance) {
-                    el.classList.remove('active');
-                    el.style.display = 'none';
-                }
-            });
+            if (activeEntrance) {
+                document.querySelectorAll('.entrance').forEach(el => {
+                    if (el !== activeEntrance) {
+                        el.classList.remove('active');
+                        el.style.display = 'none';
+                    }
+                });
 
-            activeEntrance.classList.add('active');
-            activeEntrance.style.display = 'flex';
-            activeEntrance.style.position = 'relative';
-            activeEntrance.style.transform = '';
-            activeEntrance.style.opacity = '';
-            activeEntrance.style.pointerEvents = 'auto';
+                activeEntrance.classList.add('active');
+                activeEntrance.style.display = 'flex';
+                activeEntrance.style.position = 'relative';
+                activeEntrance.style.transform = '';
+                activeEntrance.style.opacity = '';
+                activeEntrance.style.pointerEvents = 'auto';
+            }
         }
-    }
-} else {
+    } else {
         document.querySelectorAll('.entrance').forEach(el => {
             el.classList.add('active');
             el.style.display = 'flex';
