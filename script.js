@@ -354,6 +354,7 @@ function switchEntrance(num, direction) {
         currentEntrance.style.display = 'none';
     applyMobileFix();
 }, 500);
+}
 
 // 10. Мобильный фикс
 function applyMobileFix() {
