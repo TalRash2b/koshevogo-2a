@@ -313,50 +313,28 @@ function closeInfo() {
 }
 
 // 9. Переключение подъездов
-function switchEntrance(num, direction) {
-    const currentEntrance = document.querySelector('.entrance.active');
-    const nextEntrance = document.getElementById(`entrance${num}`);
+function switchEntrance(entranceNum) {
+    const container = document.querySelector('.building-container');
+    const entrance = document.getElementById(`entrance${entranceNum}`);
 
-    if (currentEntrance === nextEntrance || !currentEntrance || !nextEntrance) return;
-
-    if (!direction) {
-        const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
-        direction = num > currentNum ? 'left' : 'right';
+    // На мобильных устройствах плавно скроллим контейнер к выбранному подъезду
+    if (window.innerWidth < 768 && container && entrance) {
+        container.scrollTo({
+            left: entrance.offsetLeft,
+            behavior: 'smooth'
+        });
     }
 
-    // 1. Сразу делаем следующий подъезд видимым и активным
-    nextEntrance.classList.add('active');
-    nextEntrance.style.display = 'flex';
-    nextEntrance.style.position = 'absolute';
-    nextEntrance.style.top = '0';
-    nextEntrance.style.left = '0';
-    nextEntrance.style.width = '100%';
-    nextEntrance.style.transform = direction === 'left' ? 'translateX(100%)' : 'translateX(-100%)';
-    nextEntrance.style.opacity = '1';
-    nextEntrance.style.transition = 'transform 0.3s ease';
-
-    // Заставляем браузер применить начальные стили без задержки
-    void nextEntrance.offsetHeight; 
-
-    // 2. Запускаем движение
-    requestAnimationFrame(() => {
-        currentEntrance.style.transition = 'transform 0.3s ease';
-        currentEntrance.style.transform = direction === 'left' ? 'translateX(-100%)' : 'translateX(100%)';
-        nextEntrance.style.transform = 'translateX(0)';
-    });
-
-    // Обновляем состояние табов
+    // Подсвечиваем активный таб
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById(`tab${num}`).classList.add('active');
-    updateTabSlider();
+    const activeTab = document.getElementById(`tab${entranceNum}`);
+    if (activeTab) {
+        activeTab.classList.add('active');
+    }
 
-    // 3. После завершения анимации чистим временные стили
-    setTimeout(() => {
-        currentEntrance.classList.remove('active');
-        currentEntrance.style.cssText = 'display: none;';
-
-        nextEntrance.style.cssText = 'display: flex; position: relative; pointer-events: auto; transform: none;';
-    }, 300);
+    if (typeof updateTabSlider === 'function') {
+        updateTabSlider();
+    }
 }
 
 // 10. Мобильный фикс
