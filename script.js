@@ -591,7 +591,7 @@ document.head.appendChild(style);
                     nextEntrance.style.display = 'none';
                     nextEntrance.style.transform = '';
                     nextEntrance.style.transition = '';
-                    nextEntrance.style.position = '';
+                    nextEntrance.style.position = 'relative';
                     nextEntrance.style.zIndex = '';
                 }
 
