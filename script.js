@@ -367,6 +367,16 @@ function applyMobileFix() {
             const activeEntrance = document.getElementById(`entrance${num}`);
 
             if (activeEntrance) {
+                if (
+                    activeEntrance.classList.contains('active') &&
+                    activeEntrance.style.display === 'flex' &&
+                    activeEntrance.style.position === 'relative' &&
+                    activeEntrance.style.transform === '' &&
+                    activeEntrance.style.opacity === '' &&
+                    activeEntrance.style.pointerEvents === 'auto'
+                ) {
+                    return;
+                }
                 document.querySelectorAll('.entrance').forEach(el => {
                     if (el !== activeEntrance) {
                         el.classList.remove('active');
