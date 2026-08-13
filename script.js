@@ -571,74 +571,85 @@ document.head.appendChild(style);
     }, { passive: false });
 
     document.addEventListener('touchend', function(e) {
-        if (!isDragging || !currentEntrance) {
-            isDragging = false;
-            return;
-        }
-
-        if (!isHorizontalSwipe) {
-            isDragging = false;
-            return;
-        }
-
+    if (!isDragging || !currentEntrance) {
         isDragging = false;
+        return;
+    }
 
-        const touch = e.changedTouches[0];
-        const diffX = touch.clientX - touchStartX;
-        const duration = Date.now() - touchStartTime;
-        const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
+    if (!isHorizontalSwipe) {
+        isDragging = false;
+        return;
+    }
 
-        const isFlick = duration < 200 && Math.abs(diffX) > 20;
-        const isLongSwipe = Math.abs(diffX) >= 60;
-        const shouldSwitch = isFlick || isLongSwipe;
+    isDragging = false;
 
-        if (!shouldSwitch) {
-            currentEntrance.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
-            currentEntrance.style.transform = 'translateX(0)';
+    const touch = e.changedTouches[0];
+    const diffX = touch.clientX - touchStartX;
+    const duration = Date.now() - touchStartTime;
+    const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
 
-            const nextNum = currentNum === 1 ? 2 : 1;
-            const nextEntrance = document.getElementById(`entrance${nextNum}`);
-            if (nextEntrance) {
-                nextEntrance.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
-                nextEntrance.style.transform = currentNum === 1 ? 'translateX(100%)' : 'translateX(-100%)';
-            }
+    const isFlick = duration < 200 && Math.abs(diffX) > 20;
+    const isLongSwipe = Math.abs(diffX) >= 60;
+    const shouldSwitch = isFlick || isLongSwipe;
 
-            setTimeout(() => {
-                if (nextEntrance) nextEntrance.style.cssText = 'display: none;';
-                currentEntrance.style.cssText = 'display: flex; position: relative;';
-            }, 200);
-            return;
-        }
+    // ---- Возврат, если свайп слабый ----
+    if (!shouldSwitch) {
+        currentEntrance.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        currentEntrance.style.transform = 'translateX(0)';
 
-        const nextNum = diffX < 0 ? 2 : 1;
-        if (currentNum === nextNum) return;
-
+        const nextNum = currentNum === 1 ? 2 : 1;
         const nextEntrance = document.getElementById(`entrance${nextNum}`);
-        if (!nextEntrance) return;
-
-        const animDuration = isFlick ? '0.18s' : '0.22s';
-        const timingFunc = 'cubic-bezier(0.1, 0.9, 0.2, 1)';
-
-        currentEntrance.style.transition = `transform ${animDuration} ${timingFunc}`;
-        nextEntrance.style.transition = `transform ${animDuration} ${timingFunc}`;
-
-        currentEntrance.style.transform = nextNum === 2 ? 'translateX(-100%)' : 'translateX(100%)';
-        nextEntrance.style.transform = 'translateX(0)';
-
-        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-        document.getElementById(`tab${nextNum}`).classList.add('active');
-        updateTabSlider();
+        if (nextEntrance) {
+            nextEntrance.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            nextEntrance.style.transform = currentNum === 1 ? 'translateX(100%)' : 'translateX(-100%)';
+        }
 
         setTimeout(() => {
-            currentEntrance.classList.remove('active');
-            currentEntrance.style.cssText = 'display: none;';
+            if (nextEntrance) nextEntrance.style.cssText = 'display: none;';
+            currentEntrance.style.cssText = 'display: flex; position: relative;';
+        }, 250);
+        return;
+    }
 
-            nextEntrance.classList.add('active');
-            nextEntrance.style.cssText = 'display: flex; position: relative; pointer-events: auto;';
-        }, isFlick ? 180 : 220);
+    // ---- Переключение ----
+    const nextNum = diffX < 0 ? 2 : 1;
+    if (currentNum === nextNum) return;
 
-        if (navigator.vibrate) navigator.vibrate(10);
-    }, { passive: true });
+    const nextEntrance = document.getElementById(`entrance${nextNum}`);
+    if (!nextEntrance) return;
+
+    // Симметричные анимации
+    const animDuration = isFlick ? '0.2s' : '0.25s';
+    const timingFunc = 'cubic-bezier(0.1, 0.9, 0.2, 1)';
+
+    // Уезжает текущий
+    currentEntrance.style.transition = `transform ${animDuration} ${timingFunc}, opacity 0.2s ease`;
+    currentEntrance.style.transform = nextNum === 2 ? 'translateX(-100%)' : 'translateX(100%)';
+    currentEntrance.style.opacity = '0';
+
+    // Приезжает новый
+    nextEntrance.style.transition = `transform ${animDuration} ${timingFunc}, opacity 0.2s ease`;
+    nextEntrance.style.transform = 'translateX(0)';
+    nextEntrance.style.opacity = '1';
+    nextEntrance.style.pointerEvents = 'auto';
+
+    // Обновляем табы
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(`tab${nextNum}`).classList.add('active');
+    updateTabSlider();
+
+    setTimeout(() => {
+        currentEntrance.classList.remove('active');
+        currentEntrance.style.cssText = 'display: none;';
+
+        nextEntrance.classList.add('active');
+        nextEntrance.style.cssText = 'display: flex; position: relative; pointer-events: auto;';
+        
+        applyMobileFix();
+    }, 250);
+
+    if (navigator.vibrate) navigator.vibrate(10);
+}, { passive: true });
 })();
 
 
