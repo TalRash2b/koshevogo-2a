@@ -342,18 +342,22 @@ function switchEntrance(num, direction) {
     updateTabSlider();
 
     setTimeout(() => {
-        nextEntrance.classList.add('active');
-        nextEntrance.style.position = '';
-        nextEntrance.style.pointerEvents = 'auto';
-        nextEntrance.style.transform = '';
-        nextEntrance.style.opacity = '';
-        nextEntrance.style.transition = '';
+    currentEntrance.classList.remove('active');
+    currentEntrance.classList.remove('exit-left', 'exit-right');
 
-        currentEntrance.classList.remove('exit-left', 'exit-right');
-        currentEntrance.style.display = 'none';
+    nextEntrance.classList.add('active');
 
-        applyMobileFix();
-    }, 500);
+    currentEntrance.style.display = 'none';
+
+    nextEntrance.style.display = 'flex';
+    nextEntrance.style.position = 'relative';
+    nextEntrance.style.pointerEvents = 'auto';
+
+    nextEntrance.style.transition = '';
+    nextEntrance.style.transform = '';
+    nextEntrance.style.opacity = '';
+
+}, 400);
 }
 
 // 10. Мобильный фикс
