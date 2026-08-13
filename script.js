@@ -313,16 +313,15 @@ function switchEntrance(num, direction) {
     const currentEntrance = document.querySelector('.entrance.active');
     const nextEntrance = document.getElementById(`entrance${num}`);
 
-    if (currentEntrance === nextEntrance) return;
-    if (!currentEntrance || !nextEntrance) return;
+    if (currentEntrance === nextEntrance || !currentEntrance || !nextEntrance) return;
 
     if (!direction) {
         const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
         direction = num > currentNum ? 'left' : 'right';
     }
 
-    currentEntrance.classList.add(direction === 'left' ? 'exit-left' : 'exit-right');
-
+    // 1. Сразу делаем следующий подъезд видимым и активным
+    nextEntrance.classList.add('active');
     nextEntrance.style.display = 'flex';
     nextEntrance.style.position = 'absolute';
     nextEntrance.style.top = '0';
@@ -330,36 +329,30 @@ function switchEntrance(num, direction) {
     nextEntrance.style.width = '100%';
     nextEntrance.style.transform = direction === 'left' ? 'translateX(100%)' : 'translateX(-100%)';
     nextEntrance.style.opacity = '1';
-    nextEntrance.style.pointerEvents = 'none';
-    nextEntrance.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+    nextEntrance.style.transition = 'transform 0.3s ease';
 
-    void nextEntrance.offsetHeight;
+    // Заставляем браузер применить начальные стили без задержки
+    void nextEntrance.offsetHeight; 
 
+    // 2. Запускаем движение
     requestAnimationFrame(() => {
+        currentEntrance.style.transition = 'transform 0.3s ease';
+        currentEntrance.style.transform = direction === 'left' ? 'translateX(-100%)' : 'translateX(100%)';
         nextEntrance.style.transform = 'translateX(0)';
     });
 
+    // Обновляем состояние табов
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.getElementById(`tab${num}`).classList.add('active');
     updateTabSlider();
 
+    // 3. После завершения анимации чистим временные стили
     setTimeout(() => {
-    currentEntrance.classList.remove('active');
-    currentEntrance.classList.remove('exit-left', 'exit-right');
+        currentEntrance.classList.remove('active');
+        currentEntrance.style.cssText = 'display: none;';
 
-   nextEntrance.classList.add('active');
-
-    currentEntrance.style.display = 'none';
-
-    nextEntrance.style.display = 'flex';
-    nextEntrance.style.position = 'relative';
-    nextEntrance.style.pointerEvents = 'auto';
-
-    nextEntrance.style.transition = 'none';
-    nextEntrance.style.transform = 'translateX(0)';
-    nextEntrance.style.opacity = '1';
-
-}, 400);
+        nextEntrance.style.cssText = 'display: flex; position: relative; pointer-events: auto; transform: none;';
+    }, 300);
 }
 
 // 10. Мобильный фикс
