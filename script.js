@@ -303,13 +303,7 @@ function closeInfo() {
 
     overlay.style.display = 'none';
     document.body.style.overflow = '';
-    document.querySelectorAll('.entrance').forEach(el => {
-    if (el.classList.contains('active')) {
-        el.style.transform = '';
-        el.style.opacity = '1';
-        el.style.pointerEvents = 'auto';
-    }
-});
+   
 }
 
 // 9. Переключение подъездов
