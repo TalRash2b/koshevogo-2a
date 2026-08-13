@@ -349,12 +349,14 @@ function switchEntrance(num, direction) {
         nextEntrance.style.transform = '';
         nextEntrance.style.opacity = '';
         nextEntrance.style.transition = '';
-        
+    
         currentEntrance.classList.remove('exit-left', 'exit-right');
         currentEntrance.style.display = 'none';
-        applyMobileFix();
-    }, 500);
-}
+    
+        if (window.innerWidth >= 768) {
+    applyMobileFix();
+    }
+}, 500);
 
 // 10. Мобильный фикс
 function applyMobileFix() {
