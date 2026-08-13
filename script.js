@@ -548,9 +548,16 @@ document.head.appendChild(style);
     }, { passive: false });
 
     document.addEventListener('touchend', function(e) {
-        if (!isDragging || !currentEntrance) return;
+    if (!isDragging || !currentEntrance) return;
 
-        isDragging = false;
+    isDragging = false;
+
+    if (document.getElementById('infoPanel')?.classList.contains('active')) {
+        currentEntrance.style.transform = '';
+        currentEntrance.style.transition = '';
+        currentEntrance.style.position = '';
+        currentEntrance.style.zIndex = '';
+        return;
 
         const touch = e.changedTouches[0];
         const diff = touch.clientX - touchStartX;
