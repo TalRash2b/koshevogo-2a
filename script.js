@@ -327,9 +327,9 @@ function switchEntrance(num, direction) {
     nextEntrance.style.left = '0';
     nextEntrance.style.width = '100%';
     nextEntrance.style.transform = direction === 'left' ? 'translateX(100%)' : 'translateX(-100%)';
-    nextEntrance.style.opacity = '0';
+    nextEntrance.style.opacity = '1';
     nextEntrance.style.pointerEvents = 'none';
-    nextEntrance.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease';
+    nextEntrance.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
     
     void nextEntrance.offsetHeight;
     
