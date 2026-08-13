@@ -310,77 +310,49 @@ function switchEntrance(num, direction) {
     const currentEntrance = document.querySelector('.entrance.active');
     const nextEntrance = document.getElementById(`entrance${num}`);
 
-    if (!currentEntrance || !nextEntrance) return;
     if (currentEntrance === nextEntrance) return;
+    if (!currentEntrance || !nextEntrance) return;
 
     if (!direction) {
         const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
         direction = num > currentNum ? 'left' : 'right';
     }
 
-    // Подготавливаем новый подъезд
+    currentEntrance.classList.add(direction === 'left' ? 'exit-left' : 'exit-right');
+
     nextEntrance.style.display = 'flex';
     nextEntrance.style.position = 'absolute';
     nextEntrance.style.top = '0';
     nextEntrance.style.left = '0';
     nextEntrance.style.width = '100%';
-    nextEntrance.style.zIndex = '5';
+    nextEntrance.style.transform = direction === 'left' ? 'translateX(100%)' : 'translateX(-100%)';
     nextEntrance.style.opacity = '1';
     nextEntrance.style.pointerEvents = 'none';
-    nextEntrance.style.transition = 'none';
+    nextEntrance.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
 
-    // Ставим новый подъезд за пределами экрана
-    nextEntrance.style.transform =
-        direction === 'left'
-            ? 'translateX(100%)'
-            : 'translateX(-100%)';
-
-    // Текущий подъезд
-    currentEntrance.style.position = 'relative';
-    currentEntrance.style.zIndex = '6';
-    currentEntrance.style.transition =
-        'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-
-    // Запускаем движение
-    void nextEntrance.offsetWidth;
+    void nextEntrance.offsetHeight;
 
     requestAnimationFrame(() => {
-        currentEntrance.style.transform =
-            direction === 'left'
-                ? 'translateX(-100%)'
-                : 'translateX(100%)';
-
-        nextEntrance.style.transition =
-            'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-
         nextEntrance.style.transform = 'translateX(0)';
     });
 
-    // Переключаем активный таб
-    document.querySelectorAll('.tab-btn').forEach(el => {
-        el.classList.remove('active');
-    });
-
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.getElementById(`tab${num}`).classList.add('active');
-
     updateTabSlider();
 
-    // После завершения движения фиксируем новое состояние
     setTimeout(() => {
-        currentEntrance.style.display = 'none';
-        currentEntrance.classList.remove('active');
-        currentEntrance.style.transform = '';
-        currentEntrance.style.transition = '';
-        currentEntrance.style.position = '';
-        currentEntrance.style.zIndex = '';
-
         nextEntrance.classList.add('active');
-        nextEntrance.style.position = 'relative';
-        nextEntrance.style.transform = '';
-        nextEntrance.style.transition = '';
-        nextEntrance.style.zIndex = '';
+        nextEntrance.style.position = '';
         nextEntrance.style.pointerEvents = 'auto';
-    }, 450);
+        nextEntrance.style.transform = '';
+        nextEntrance.style.opacity = '';
+        nextEntrance.style.transition = '';
+
+        currentEntrance.classList.remove('exit-left', 'exit-right');
+        currentEntrance.style.display = 'none';
+
+        applyMobileFix();
+    }, 500);
 }
 
 // 10. Мобильный фикс
