@@ -466,33 +466,300 @@ style.textContent = `
 document.head.appendChild(style);
 
 // Нативный скролл и отслеживание свайпа
-(function initNativeSwipe() {
-    const container = document.querySelector('.building-container');
-    if (!container) return;
+// ===== СВАЙП ДЛЯ ПЕРЕКЛЮЧЕНИЯ ПОДЪЕЗДОВ =====
 
-    let isScrollingTimer = null;
+(function initSwipe() {
 
-    container.addEventListener('scroll', () => {
-        clearTimeout(isScrollingTimer);
-        isScrollingTimer = setTimeout(() => {
-            const width = container.clientWidth;
-            if (width === 0) return;
+    let touchStartX = 0;
 
-            const activeIndex = Math.round(container.scrollLeft / width) + 1;
+    let touchStartY = 0;
 
-            const currentActiveTab = document.querySelector('.tab-btn.active');
-            const targetTab = document.getElementById(`tab${activeIndex}`);
+    let touchStartTime = 0;
 
-            if (targetTab && currentActiveTab !== targetTab) {
-                document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-                targetTab.classList.add('active');
+    let currentEntrance = null;
 
-                if (typeof updateTabSlider === 'function') {
-                    updateTabSlider();
-                }
-            }
-        }, 50);
+    let isDragging = false;
+
+    let isHorizontalSwipe = false;
+
+    let isDirectionLocked = false;
+
+
+
+    document.addEventListener('touchstart', function(e) {
+
+        if (window.innerWidth >= 768) return;
+
+        if (e.target.closest('#infoPanel, #overlay')) return;
+
+        
+
+        const touch = e.touches[0];
+
+        touchStartX = touch.clientX;
+
+        touchStartY = touch.clientY;
+
+        touchStartTime = Date.now();
+
+
+
+        currentEntrance = document.querySelector('.entrance.active');
+
+        if (!currentEntrance) return;
+
+
+
+        isDragging = true;
+
+        isHorizontalSwipe = false;
+
+        isDirectionLocked = false;
+
     }, { passive: true });
+
+
+
+    document.addEventListener('touchmove', function(e) {
+
+        if (!isDragging || !currentEntrance || window.innerWidth >= 768) return;
+
+
+
+        const touch = e.touches[0];
+
+        const diffX = touch.clientX - touchStartX;
+
+        const diffY = touch.clientY - touchStartY;
+
+
+
+        // Блокировка направления жеста (вертикальный/горизонтальный)
+
+        if (!isDirectionLocked) {
+
+            const absX = Math.abs(diffX);
+
+            const absY = Math.abs(diffY);
+
+
+
+            if (absX > 6 || absY > 6) {
+
+                isDirectionLocked = true;
+
+                isHorizontalSwipe = absX > absY;
+
+            }
+
+        }
+
+
+
+        if (!isHorizontalSwipe) return;
+
+
+
+        if (e.cancelable) e.preventDefault();
+
+
+
+        const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
+
+
+
+        // Ограничиваем свайп за границы крайних подъездов
+
+        if ((currentNum === 1 && diffX > 0) || (currentNum === 2 && diffX < 0)) return;
+
+
+
+        const nextNum = currentNum === 1 ? 2 : 1;
+
+        const nextEntrance = document.getElementById(`entrance${nextNum}`);
+
+        if (!nextEntrance) return;
+
+
+
+        // Подготавливаем следующий подъезд к выезду
+
+        nextEntrance.style.cssText = `display: flex; position: absolute; top: 0; left: 0; width: 100%; z-index: 5; opacity: 1; pointer-events: none; transition: none;`;
+
+
+
+        currentEntrance.style.transition = 'none';
+
+        currentEntrance.style.position = 'relative';
+
+        currentEntrance.style.zIndex = '6';
+
+        currentEntrance.style.transform = `translateX(${diffX}px)`;
+
+
+
+        const offset = diffX > 0 ? -window.innerWidth : window.innerWidth;
+
+        nextEntrance.style.transform = `translateX(${diffX + offset}px)`;
+
+    }, { passive: false });
+
+
+
+    document.addEventListener('touchend', function(e) {
+
+        if (!isDragging || !currentEntrance) {
+
+            isDragging = false;
+
+            return;
+
+        }
+
+
+
+        if (!isHorizontalSwipe) {
+
+            isDragging = false;
+
+            return;
+
+        }
+
+
+
+        isDragging = false;
+
+
+
+        const touch = e.changedTouches[0];
+
+        const diffX = touch.clientX - touchStartX;
+
+        const duration = Date.now() - touchStartTime;
+
+        const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
+
+
+
+        // Быстрый смах (быстрее 200мс) или смещение больше 60px считаем за полноценный свайп
+
+        const isFlick = duration < 200 && Math.abs(diffX) > 20;
+
+        const isLongSwipe = Math.abs(diffX) >= 60;
+
+        const shouldSwitch = isFlick || isLongSwipe;
+
+
+
+        // 1. Возврат назад, если свайп слаб/не закончен
+
+        if (!shouldSwitch) {
+
+            currentEntrance.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
+
+            currentEntrance.style.transform = 'translateX(0)';
+
+
+
+            const nextNum = currentNum === 1 ? 2 : 1;
+
+            const nextEntrance = document.getElementById(`entrance${nextNum}`);
+
+
+
+            if (nextEntrance) {
+
+                nextEntrance.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
+
+                nextEntrance.style.transform = currentNum === 1 ? 'translateX(100%)' : 'translateX(-100%)';
+
+            }
+
+
+
+            setTimeout(() => {
+
+                if (nextEntrance) nextEntrance.style.cssText = 'display: none;';
+
+                currentEntrance.style.cssText = 'display: flex; position: relative;';
+
+            }, 200);
+
+
+
+            return;
+
+        }
+
+
+
+        // 2. Уверенный переезд на следующий подъезд
+
+        const nextNum = diffX < 0 ? 2 : 1;
+
+        if (currentNum === nextNum) return;
+
+
+
+        const nextEntrance = document.getElementById(`entrance${nextNum}`);
+
+        if (!nextEntrance) return;
+
+
+
+        // Подбираем плавную физику завершения анимации
+
+        const animDuration = isFlick ? '0.18s' : '0.22s';
+
+        const timingFunc = 'cubic-bezier(0.1, 0.9, 0.2, 1)';
+
+
+
+        currentEntrance.style.transition = `transform ${animDuration} ${timingFunc}`;
+
+        nextEntrance.style.transition = `transform ${animDuration} ${timingFunc}`;
+
+
+
+        currentEntrance.style.transform = nextNum === 2 ? 'translateX(-100%)' : 'translateX(100%)';
+
+        nextEntrance.style.transform = 'translateX(0)';
+
+
+
+        // Сразу переключаем активный тап в шапке
+
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+        document.getElementById(`tab${nextNum}`).classList.add('active');
+
+        updateTabSlider();
+
+
+
+        // Снимаем временные стили ровно в момент приземления
+
+        setTimeout(() => {
+
+            currentEntrance.classList.remove('active');
+
+            currentEntrance.style.cssText = 'display: none;';
+
+
+
+            nextEntrance.classList.add('active');
+
+            nextEntrance.style.cssText = 'display: flex; position: relative; pointer-events: auto;';
+
+        }, isFlick ? 180 : 220);
+
+
+
+        if (navigator.vibrate) navigator.vibrate(10);
+
+    }, { passive: true });
+
 })();
 
 // ===== СВАЙП ДЛЯ ЗАКРЫТИЯ ШТОРКИ =====
