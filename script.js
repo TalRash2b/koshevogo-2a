@@ -490,86 +490,93 @@ document.head.appendChild(style);
 // ===== СВАЙП ДЛЯ ПЕРЕКЛЮЧЕНИЯ ПОДЪЕЗДОВ =====
 (function initSwipe() {
     let touchStartX = 0;
+    let touchStartY = 0;
     let currentEntrance = null;
     let isDragging = false;
+    let isHorizontalSwipe = false;
+    let isDirectionLocked = false; // Флаг: направление жеста определено
 
     document.addEventListener('touchstart', function(e) {
         if (window.innerWidth >= 768) return;
         if (e.target.closest('#infoPanel, #overlay')) return;
+        
         const touch = e.touches[0];
         touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
 
         currentEntrance = document.querySelector('.entrance.active');
         if (!currentEntrance) return;
 
         isDragging = true;
+        isHorizontalSwipe = false;
+        isDirectionLocked = false;
     }, { passive: true });
 
-    // Замени блок touchmove внутри (function initSwipe() { ... })()
-document.addEventListener('touchmove', function(e) {
-    if (!isDragging || !currentEntrance || window.innerWidth >= 768) return;
+    document.addEventListener('touchmove', function(e) {
+        if (!isDragging || !currentEntrance || window.innerWidth >= 768) return;
 
-    const touch = e.touches[0];
-    const diffX = touch.clientX - touchStartX;
-    const diffY = touch.clientY - touchStartY;
+        const touch = e.touches[0];
+        const diffX = touch.clientX - touchStartX;
+        const diffY = touch.clientY - touchStartY;
 
-    // Проверяем направление жеста на старте
-    if (!isHorizontalSwipe) {
-        // Если горизонтальное смещение больше вертикального с запасом — это свайп подъезда
-        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
-            isHorizontalSwipe = true;
-        } else if (Math.abs(diffY) > 10) {
-            // Если пользователь явно скроллит страницу вниз/вверх — отменяем жест свайпа
-            isDragging = false;
-            return;
+        // 1. Определяем направление один раз после микро-смещения (8px)
+        if (!isDirectionLocked) {
+            const absX = Math.abs(diffX);
+            const absY = Math.abs(diffY);
+
+            if (absX > 8 || absY > 8) {
+                isDirectionLocked = true;
+                // Считаем свайпом, только если горизонтальное движение явно больше вертикального
+                isHorizontalSwipe = absX > absY;
+            }
         }
-    }
 
-    // Если это обычный вертикальный скролл страницы — ничего не блокируем
-    if (!isHorizontalSwipe) return;
+        // Если это вертикальный скролл страницы — выходим и даем странице свободно скроллиться
+        if (!isHorizontalSwipe) return;
 
-    const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
-
-    // Не даем свайпать влево на 1-м подъезде и вправо на 2-м
-    if ((currentNum === 1 && diffX > 0) || (currentNum === 2 && diffX < 0)) return;
-
-    const nextNum = currentNum === 1 ? 2 : 1;
-    const nextEntrance = document.getElementById(`entrance${nextNum}`);
-
-    if (!nextEntrance) return;
-
-    nextEntrance.style.cssText = `display: flex; position: absolute; top: 0; left: 0; width: 100%; z-index: 5; opacity: 1; pointer-events: none; transition: none;`;
-
-    currentEntrance.style.transition = 'none';
-    currentEntrance.style.position = 'relative';
-    currentEntrance.style.zIndex = '6';
-    currentEntrance.style.transform = `translateX(${diffX}px)`;
-
-    const offset = diffX > 0 ? -window.innerWidth : window.innerWidth;
-    nextEntrance.style.transform = `translateX(${diffX + offset}px)`;
-
-    if (e.cancelable) e.preventDefault();
-}, { passive: false });
-
-    document.addEventListener('touchend', function(e) {
-    if (!isDragging || !currentEntrance) return;
-
-    isDragging = false;
-
-    if (document.getElementById('infoPanel')?.classList.contains('active')) {
-        currentEntrance.style.transform = '';
-        currentEntrance.style.transition = '';
-        currentEntrance.style.position = '';
-        currentEntrance.style.zIndex = '';
-        return;
-    }
-        const touch = e.changedTouches[0];
-        const diff = touch.clientX - touchStartX;
+        // 2. Это горизонтальный свайп: блокируем скролл страницы
+        if (e.cancelable) e.preventDefault();
 
         const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
 
-        // Если движение слишком маленькое — возвращаем всё назад
-        if (Math.abs(diff) < 80) {
+        // Ограничиваем свайп за края (нельзя свипать вправо на 1-м и влево на 2-м)
+        if ((currentNum === 1 && diffX > 0) || (currentNum === 2 && diffX < 0)) return;
+
+        const nextNum = currentNum === 1 ? 2 : 1;
+        const nextEntrance = document.getElementById(`entrance${nextNum}`);
+        if (!nextEntrance) return;
+
+        // 3. Тянем подъезды вслед за пальцем
+        nextEntrance.style.cssText = `display: flex; position: absolute; top: 0; left: 0; width: 100%; z-index: 5; opacity: 1; pointer-events: none; transition: none;`;
+
+        currentEntrance.style.transition = 'none';
+        currentEntrance.style.position = 'relative';
+        currentEntrance.style.zIndex = '6';
+        currentEntrance.style.transform = `translateX(${diffX}px)`;
+
+        const offset = diffX > 0 ? -window.innerWidth : window.innerWidth;
+        nextEntrance.style.transform = `translateX(${diffX + offset}px)`;
+    }, { passive: false });
+
+    document.addEventListener('touchend', function(e) {
+        if (!isDragging || !currentEntrance) {
+            isDragging = false;
+            return;
+        }
+
+        if (!isHorizontalSwipe) {
+            isDragging = false;
+            return;
+        }
+
+        isDragging = false;
+
+        const touch = e.changedTouches[0];
+        const diffX = touch.clientX - touchStartX;
+        const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
+
+        // Если свайпнули слабо (< 80px) — возвращаем всё назад
+        if (Math.abs(diffX) < 80) {
             currentEntrance.style.transition = 'transform 0.3s ease';
             currentEntrance.style.transform = '';
 
@@ -578,79 +585,45 @@ document.addEventListener('touchmove', function(e) {
 
             if (nextEntrance) {
                 nextEntrance.style.transition = 'transform 0.3s ease';
-                nextEntrance.style.transform =
-                    currentNum === 1
-                        ? 'translateX(100%)'
-                        : 'translateX(-100%)';
+                nextEntrance.style.transform = currentNum === 1 ? 'translateX(100%)' : 'translateX(-100%)';
             }
 
             setTimeout(() => {
-                if (nextEntrance) {
-                    nextEntrance.style.display = 'none';
-                    nextEntrance.style.transform = '';
-                    nextEntrance.style.transition = '';
-                    nextEntrance.style.position = 'relative';
-                    nextEntrance.style.zIndex = '';
-                }
-
-                currentEntrance.style.transition = '';
-                currentEntrance.style.position = '';
-                currentEntrance.style.zIndex = '';
+                if (nextEntrance) nextEntrance.style.cssText = 'display: none;';
+                currentEntrance.style.cssText = 'display: flex; position: relative;';
             }, 300);
 
             return;
         }
 
-        // Определяем, куда переключаемся
-        const nextNum = diff < 0 ? 2 : 1;
+        // Если свайпнули достаточно сильно — докручиваем до следующего подъезда
+        const nextNum = diffX < 0 ? 2 : 1;
         if (currentNum === nextNum) return;
 
         const nextEntrance = document.getElementById(`entrance${nextNum}`);
         if (!nextEntrance) return;
 
-        // Заканчиваем движение
         currentEntrance.style.transition = 'transform 0.3s ease';
         nextEntrance.style.transition = 'transform 0.3s ease';
 
-        if (nextNum === 2) {
-            currentEntrance.style.transform = 'translateX(-100%)';
-            nextEntrance.style.transform = 'translateX(0)';
-        } else {
-            currentEntrance.style.transform = 'translateX(100%)';
-            nextEntrance.style.transform = 'translateX(0)';
-        }
+        currentEntrance.style.transform = nextNum === 2 ? 'translateX(-100%)' : 'translateX(100%)';
+        nextEntrance.style.transform = 'translateX(0)';
 
         setTimeout(() => {
             currentEntrance.classList.remove('active');
-            currentEntrance.style.display = 'none';
+            currentEntrance.style.cssText = 'display: none;';
 
             nextEntrance.classList.add('active');
-            nextEntrance.style.display = 'flex';
-            nextEntrance.style.position = 'relative';
-            nextEntrance.style.transform = '';
-            nextEntrance.style.transition = '';
-            nextEntrance.style.zIndex = '';
-            nextEntrance.style.pointerEvents = 'auto';
+            nextEntrance.style.cssText = 'display: flex; position: relative; pointer-events: auto;';
 
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.remove('active');
-            });
-
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(`tab${nextNum}`).classList.add('active');
 
             updateTabSlider();
             applyMobileFix();
-
-            currentEntrance.style.transition = '';
-            currentEntrance.style.position = '';
-            currentEntrance.style.zIndex = '';
-            currentEntrance.style.pointerEvents = '';
-            currentEntrance.style.transform = '';
         }, 300);
 
-        if (navigator.vibrate) {
-            navigator.vibrate(10);
-        }
+        if (navigator.vibrate) navigator.vibrate(10);
     }, { passive: true });
 })();
 
