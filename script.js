@@ -473,48 +473,158 @@ document.head.appendChild(style);
 // ===== СВАЙП ДЛЯ ПЕРЕКЛЮЧЕНИЯ ПОДЪЕЗДОВ =====
 (function initSwipe() {
     let touchStartX = 0;
-    let touchEndX = 0;
-    let isSwiping = false;
+    let currentEntrance = null;
+    let isDragging = false;
 
     document.addEventListener('touchstart', function(e) {
-        touchStartX = e.changedTouches[0].screenX;
-        isSwiping = true;
+        if (window.innerWidth >= 768) return;
+
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+
+        currentEntrance = document.querySelector('.entrance.active');
+        if (!currentEntrance) return;
+
+        isDragging = true;
     }, { passive: true });
 
     document.addEventListener('touchmove', function(e) {
-        if (!isSwiping) return;
-        const target = e.target.closest('.tabs-container');
-        if (target) {
-            e.preventDefault();
-        }
+        if (!isDragging || !currentEntrance) return;
+        if (window.innerWidth >= 768) return;
+
+        const touch = e.touches[0];
+        const currentX = touch.clientX;
+        const diff = currentX - touchStartX;
+
+        const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
+
+        // На 1-м подъезде нельзя тянуть вправо
+        if (currentNum === 1 && diff > 0) return;
+
+        // На 2-м подъезде нельзя тянуть влево
+        if (currentNum === 2 && diff < 0) return;
+
+        const nextNum = currentNum === 1 ? 2 : 1;
+        const nextEntrance = document.getElementById(`entrance${nextNum}`);
+
+        if (!nextEntrance) return;
+
+        // Показываем соседний подъезд
+        nextEntrance.style.display = 'flex';
+        nextEntrance.style.position = 'absolute';
+        nextEntrance.style.top = '0';
+        nextEntrance.style.left = '0';
+        nextEntrance.style.width = '100%';
+        nextEntrance.style.zIndex = '5';
+        nextEntrance.style.opacity = '1';
+        nextEntrance.style.pointerEvents = 'none';
+        nextEntrance.style.transition = 'none';
+
+        // Текущий подъезд двигается за пальцем
+        currentEntrance.style.transition = 'none';
+        currentEntrance.style.position = 'relative';
+        currentEntrance.style.zIndex = '6';
+        currentEntrance.style.transform = `translateX(${diff}px)`;
+
+        // Соседний подъезд стоит сразу за краем экрана
+        const offset = diff > 0 ? -window.innerWidth : window.innerWidth;
+        nextEntrance.style.transform = `translateX(${diff + offset}px)`;
+
+        e.preventDefault();
     }, { passive: false });
 
     document.addEventListener('touchend', function(e) {
-        if (!isSwiping) return;
-        isSwiping = false;
-        
-        touchEndX = e.changedTouches[0].screenX;
-        const swipeThreshold = 40;
-        const diff = touchStartX - touchEndX;
-        
-        if (window.innerWidth >= 768) return;
-        
-        const activeTab = document.querySelector('.tab-btn.active');
-        if (!activeTab) return;
-        
-        const currentNum = activeTab.id === 'tab1' ? 1 : 2;
-        let newNum = currentNum;
-        
-        if (diff > swipeThreshold) {
-            newNum = currentNum === 1 ? 2 : 2;
-        } else if (diff < -swipeThreshold) {
-            newNum = currentNum === 2 ? 1 : 1;
+        if (!isDragging || !currentEntrance) return;
+
+        isDragging = false;
+
+        const touch = e.changedTouches[0];
+        const diff = touch.clientX - touchStartX;
+
+        const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
+
+        // Если движение слишком маленькое — возвращаем всё назад
+        if (Math.abs(diff) < 80) {
+            currentEntrance.style.transition = 'transform 0.3s ease';
+            currentEntrance.style.transform = '';
+
+            const nextNum = currentNum === 1 ? 2 : 1;
+            const nextEntrance = document.getElementById(`entrance${nextNum}`);
+
+            if (nextEntrance) {
+                nextEntrance.style.transition = 'transform 0.3s ease';
+                nextEntrance.style.transform =
+                    currentNum === 1
+                        ? 'translateX(100%)'
+                        : 'translateX(-100%)';
+            }
+
+            setTimeout(() => {
+                if (nextEntrance) {
+                    nextEntrance.style.display = 'none';
+                    nextEntrance.style.transform = '';
+                    nextEntrance.style.transition = '';
+                    nextEntrance.style.position = '';
+                    nextEntrance.style.zIndex = '';
+                }
+
+                currentEntrance.style.transition = '';
+                currentEntrance.style.position = '';
+                currentEntrance.style.zIndex = '';
+            }, 300);
+
+            return;
         }
-        
-        if (newNum !== currentNum) {
-            const direction = diff > 0 ? 'left' : 'right';
-            switchEntrance(newNum, direction);
-            if (navigator.vibrate) navigator.vibrate(10);
+
+        // Определяем, куда переключаемся
+        const nextNum = diff < 0 ? 2 : 1;
+        if (currentNum === nextNum) return;
+
+        const nextEntrance = document.getElementById(`entrance${nextNum}`);
+        if (!nextEntrance) return;
+
+        // Заканчиваем движение
+        currentEntrance.style.transition = 'transform 0.3s ease';
+        nextEntrance.style.transition = 'transform 0.3s ease';
+
+        if (nextNum === 2) {
+            currentEntrance.style.transform = 'translateX(-100%)';
+            nextEntrance.style.transform = 'translateX(0)';
+        } else {
+            currentEntrance.style.transform = 'translateX(100%)';
+            nextEntrance.style.transform = 'translateX(0)';
+        }
+
+        setTimeout(() => {
+            currentEntrance.classList.remove('active');
+            currentEntrance.style.display = 'none';
+
+            nextEntrance.classList.add('active');
+            nextEntrance.style.display = 'flex';
+            nextEntrance.style.position = 'relative';
+            nextEntrance.style.transform = '';
+            nextEntrance.style.transition = '';
+            nextEntrance.style.zIndex = '';
+            nextEntrance.style.pointerEvents = 'auto';
+
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            document.getElementById(`tab${nextNum}`).classList.add('active');
+
+            updateTabSlider();
+            applyMobileFix();
+
+            currentEntrance.style.transition = '';
+            currentEntrance.style.position = '';
+            currentEntrance.style.zIndex = '';
+            currentEntrance.style.pointerEvents = '';
+            currentEntrance.style.transform = '';
+        }, 300);
+
+        if (navigator.vibrate) {
+            navigator.vibrate(10);
         }
     }, { passive: true });
 })();
