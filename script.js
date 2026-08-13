@@ -303,7 +303,9 @@ function closeInfo() {
 
     overlay.style.display = 'none';
     document.body.style.overflow = '';
-   
+    setTimeout(() => {
+    applyMobileFix();
+}, 50);
 }
 
 // 9. Переключение подъездов
