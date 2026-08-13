@@ -492,7 +492,7 @@ document.head.appendChild(style);
 
     document.addEventListener('touchstart', function(e) {
         if (window.innerWidth >= 768) return;
-        if (e.target.closest('#infoPanel')) return;
+        if (e.target.closest('#infoPanel, #overlay')) return;
         const touch = e.touches[0];
         touchStartX = touch.clientX;
 
