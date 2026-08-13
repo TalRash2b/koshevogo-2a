@@ -589,7 +589,7 @@ document.head.appendChild(style);
     const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
 
     const isFlick = duration < 200 && Math.abs(diffX) > 20;
-    const isLongSwipe = Math.abs(diffX) >= 60;
+    const isLongSwipe = Math.abs(diffX) >= 50;
     const shouldSwitch = isFlick || isLongSwipe;
 
     // ---- Возврат, если свайп слабый ----
@@ -607,6 +607,7 @@ document.head.appendChild(style);
         setTimeout(() => {
             if (nextEntrance) nextEntrance.style.cssText = 'display: none;';
             currentEntrance.style.cssText = 'display: flex; position: relative;';
+            applyMobileFix();
         }, 250);
         return;
     }
@@ -618,18 +619,18 @@ document.head.appendChild(style);
     const nextEntrance = document.getElementById(`entrance${nextNum}`);
     if (!nextEntrance) return;
 
-    // Симметричные анимации
-    const animDuration = isFlick ? '0.2s' : '0.25s';
-    const timingFunc = 'cubic-bezier(0.1, 0.9, 0.2, 1)';
+    // Определяем направления для плавного выезда
+    const currentExit = currentNum === 1 ? '-100%' : '100%';
+    const nextEnter = '0';
 
-    // Уезжает текущий
-    currentEntrance.style.transition = `transform ${animDuration} ${timingFunc}, opacity 0.2s ease`;
-    currentEntrance.style.transform = nextNum === 2 ? 'translateX(-100%)' : 'translateX(100%)';
+    // Анимация уезжает текущий
+    currentEntrance.style.transition = 'transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.25s ease';
+    currentEntrance.style.transform = `translateX(${currentExit})`;
     currentEntrance.style.opacity = '0';
 
-    // Приезжает новый
-    nextEntrance.style.transition = `transform ${animDuration} ${timingFunc}, opacity 0.2s ease`;
-    nextEntrance.style.transform = 'translateX(0)';
+    // Анимация приезжает новый
+    nextEntrance.style.transition = 'transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.25s ease';
+    nextEntrance.style.transform = `translateX(${nextEnter})`;
     nextEntrance.style.opacity = '1';
     nextEntrance.style.pointerEvents = 'auto';
 
@@ -638,15 +639,18 @@ document.head.appendChild(style);
     document.getElementById(`tab${nextNum}`).classList.add('active');
     updateTabSlider();
 
+    // Финал
     setTimeout(() => {
+        // Скрываем старый
         currentEntrance.classList.remove('active');
         currentEntrance.style.cssText = 'display: none;';
 
+        // Делаем новый активным
         nextEntrance.classList.add('active');
         nextEntrance.style.cssText = 'display: flex; position: relative; pointer-events: auto;';
         
         applyMobileFix();
-    }, 250);
+    }, 320);
 
     if (navigator.vibrate) navigator.vibrate(10);
 }, { passive: true });
