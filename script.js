@@ -347,7 +347,7 @@ function switchEntrance(num, direction) {
     currentEntrance.classList.remove('active');
     currentEntrance.classList.remove('exit-left', 'exit-right');
 
-    nextEntrance.classList.add('active');
+   // nextEntrance.classList.add('active');
 
     currentEntrance.style.display = 'none';
 
