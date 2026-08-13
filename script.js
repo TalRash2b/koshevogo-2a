@@ -491,6 +491,7 @@ document.head.appendChild(style);
 (function initSwipe() {
     let touchStartX = 0;
     let touchStartY = 0;
+    let touchStartTime = 0;
     let currentEntrance = null;
     let isDragging = false;
     let isHorizontalSwipe = false;
@@ -503,6 +504,7 @@ document.head.appendChild(style);
         const touch = e.touches[0];
         touchStartX = touch.clientX;
         touchStartY = touch.clientY;
+        touchStartTime = Date.now();
 
         currentEntrance = document.querySelector('.entrance.active');
         if (!currentEntrance) return;
@@ -519,11 +521,12 @@ document.head.appendChild(style);
         const diffX = touch.clientX - touchStartX;
         const diffY = touch.clientY - touchStartY;
 
+        // Блокировка направления жеста (вертикальный/горизонтальный)
         if (!isDirectionLocked) {
             const absX = Math.abs(diffX);
             const absY = Math.abs(diffY);
 
-            if (absX > 8 || absY > 8) {
+            if (absX > 6 || absY > 6) {
                 isDirectionLocked = true;
                 isHorizontalSwipe = absX > absY;
             }
@@ -535,12 +538,14 @@ document.head.appendChild(style);
 
         const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
 
+        // Ограничиваем свайп за границы крайних подъездов
         if ((currentNum === 1 && diffX > 0) || (currentNum === 2 && diffX < 0)) return;
 
         const nextNum = currentNum === 1 ? 2 : 1;
         const nextEntrance = document.getElementById(`entrance${nextNum}`);
         if (!nextEntrance) return;
 
+        // Подготавливаем следующий подъезд к выезду
         nextEntrance.style.cssText = `display: flex; position: absolute; top: 0; left: 0; width: 100%; z-index: 5; opacity: 1; pointer-events: none; transition: none;`;
 
         currentEntrance.style.transition = 'none';
@@ -567,56 +572,65 @@ document.head.appendChild(style);
 
         const touch = e.changedTouches[0];
         const diffX = touch.clientX - touchStartX;
+        const duration = Date.now() - touchStartTime;
         const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
 
-        // Отменяем свайп, если протянули мало (< 80px)
-        if (Math.abs(diffX) < 80) {
-            currentEntrance.style.transition = 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)';
+        // Быстрый смах (быстрее 200мс) или смещение больше 60px считаем за полноценный свайп
+        const isFlick = duration < 200 && Math.abs(diffX) > 20;
+        const isLongSwipe = Math.abs(diffX) >= 60;
+        const shouldSwitch = isFlick || isLongSwipe;
+
+        // 1. Возврат назад, если свайп слаб/не закончен
+        if (!shouldSwitch) {
+            currentEntrance.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
             currentEntrance.style.transform = 'translateX(0)';
 
             const nextNum = currentNum === 1 ? 2 : 1;
             const nextEntrance = document.getElementById(`entrance${nextNum}`);
 
             if (nextEntrance) {
-                nextEntrance.style.transition = 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)';
+                nextEntrance.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
                 nextEntrance.style.transform = currentNum === 1 ? 'translateX(100%)' : 'translateX(-100%)';
             }
 
             setTimeout(() => {
                 if (nextEntrance) nextEntrance.style.cssText = 'display: none;';
                 currentEntrance.style.cssText = 'display: flex; position: relative;';
-            }, 250);
+            }, 200);
 
             return;
         }
 
-        // Завершаем свайп переходом на следующий подъезд
+        // 2. Уверенный переезд на следующий подъезд
         const nextNum = diffX < 0 ? 2 : 1;
         if (currentNum === nextNum) return;
 
         const nextEntrance = document.getElementById(`entrance${nextNum}`);
         if (!nextEntrance) return;
 
-        // Плавно дотягиваем оба подъезда до 0 и -100%/100%
-        currentEntrance.style.transition = 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)';
-        nextEntrance.style.transition = 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)';
+        // Подбираем плавную физику завершения анимации
+        const animDuration = isFlick ? '0.18s' : '0.22s';
+        const timingFunc = 'cubic-bezier(0.1, 0.9, 0.2, 1)';
+
+        currentEntrance.style.transition = `transform ${animDuration} ${timingFunc}`;
+        nextEntrance.style.transition = `transform ${animDuration} ${timingFunc}`;
 
         currentEntrance.style.transform = nextNum === 2 ? 'translateX(-100%)' : 'translateX(100%)';
         nextEntrance.style.transform = 'translateX(0)';
 
-        // Меняем активный таб сразу
+        // Сразу переключаем активный тап в шапке
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         document.getElementById(`tab${nextNum}`).classList.add('active');
         updateTabSlider();
 
-        // По окончанию плавного доезда фиксируем положение в DOM без перерисовок
+        // Снимаем временные стили ровно в момент приземления
         setTimeout(() => {
             currentEntrance.classList.remove('active');
             currentEntrance.style.cssText = 'display: none;';
 
             nextEntrance.classList.add('active');
-            nextEntrance.style.cssText = 'display: flex; position: relative; pointer-events: auto; transform: none;';
-        }, 250);
+            nextEntrance.style.cssText = 'display: flex; position: relative; pointer-events: auto;';
+        }, isFlick ? 180 : 220);
 
         if (navigator.vibrate) navigator.vibrate(10);
     }, { passive: true });
