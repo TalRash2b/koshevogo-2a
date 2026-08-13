@@ -352,8 +352,8 @@ function switchEntrance(num, direction) {
         
         currentEntrance.classList.remove('exit-left', 'exit-right');
         currentEntrance.style.display = 'none';
-        
-    }, 450);
+        applyMobileFix();
+    }, 500);
 }
 
 // 10. Мобильный фикс
