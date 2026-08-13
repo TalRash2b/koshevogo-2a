@@ -303,7 +303,6 @@ function closeInfo() {
 
     overlay.style.display = 'none';
     document.body.style.overflow = '';
-    isDragging = false;
 }
 
 // 9. Переключение подъездов
@@ -533,9 +532,16 @@ document.head.appendChild(style);
     
 function onStart(e) {
     if (!isPanelActive()) return;
+
+    // Не запускаем свайп, если нажали на интерактивный элемент
+    if (e.target.closest('.close-btn, a, button')) {
+        return;
+    }
+
     const touch = e.touches ? e.touches[0] : e;
     startY = touch.clientY;
     isDragging = true;
+
     panel.style.transition = 'none';
     e.preventDefault();
 }
