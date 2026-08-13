@@ -344,7 +344,7 @@ function switchEntrance(num, direction) {
     
     setTimeout(() => {
         nextEntrance.classList.add('active');
-        nextEntrance.style.position = 'relative';
+        nextEntrance.style.position = '';
         nextEntrance.style.pointerEvents = 'auto';
         nextEntrance.style.transform = '';
         nextEntrance.style.opacity = '';
