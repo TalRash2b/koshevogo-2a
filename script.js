@@ -353,7 +353,6 @@ function switchEntrance(num, direction) {
         currentEntrance.classList.remove('exit-left', 'exit-right');
         currentEntrance.style.display = 'none';
         
-        applyMobileFix();
     }, 450);
 }
 
