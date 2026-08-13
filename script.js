@@ -136,11 +136,15 @@ function getEntranceStats() {
 function updateTabStats() {
     const stats = getEntranceStats();
     
-    const tab1 = document.getElementById('tabStats1');
-    const tab2 = document.getElementById('tabStats2');
+    const tab1 = document.getElementById('tab1');
+    const tab2 = document.getElementById('tab2');
     
-    if (tab1) tab1.textContent = `${stats.filled1} из ${stats.total1} (${stats.percent1}%)`;
-    if (tab2) tab2.textContent = `${stats.filled2} из ${stats.total2} (${stats.percent2}%)`;
+    // Обновляем текст внутри табов
+    if (tab1) tab1.innerHTML = `1 Подъезд <small style="opacity:0.7; font-size:0.8em;">(${stats.filled1}/${stats.total1})</small>`;
+    if (tab2) tab2.innerHTML = `2 Подъезд <small style="opacity:0.7; font-size:0.8em;">(${stats.filled2}/${stats.total2})</small>`;
+    
+    // Обновляем ползунок под активным табом, так как ширина кнопок могла измениться
+    updateTabSlider();
 }
 
 // 5. Состояние ошибки
@@ -501,50 +505,51 @@ document.head.appendChild(style);
         isDragging = true;
     }, { passive: true });
 
-    document.addEventListener('touchmove', function(e) {
-        if (!isDragging || !currentEntrance) return;
-        if (window.innerWidth >= 768) return;
+    // Замени блок touchmove внутри (function initSwipe() { ... })()
+document.addEventListener('touchmove', function(e) {
+    if (!isDragging || !currentEntrance || window.innerWidth >= 768) return;
 
-        const touch = e.touches[0];
-        const currentX = touch.clientX;
-        const diff = currentX - touchStartX;
+    const touch = e.touches[0];
+    const diffX = touch.clientX - touchStartX;
+    const diffY = touch.clientY - touchStartY;
 
-        const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
+    // Проверяем направление жеста на старте
+    if (!isHorizontalSwipe) {
+        // Если горизонтальное смещение больше вертикального с запасом — это свайп подъезда
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+            isHorizontalSwipe = true;
+        } else if (Math.abs(diffY) > 10) {
+            // Если пользователь явно скроллит страницу вниз/вверх — отменяем жест свайпа
+            isDragging = false;
+            return;
+        }
+    }
 
-        // На 1-м подъезде нельзя тянуть вправо
-        if (currentNum === 1 && diff > 0) return;
+    // Если это обычный вертикальный скролл страницы — ничего не блокируем
+    if (!isHorizontalSwipe) return;
 
-        // На 2-м подъезде нельзя тянуть влево
-        if (currentNum === 2 && diff < 0) return;
+    const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
 
-        const nextNum = currentNum === 1 ? 2 : 1;
-        const nextEntrance = document.getElementById(`entrance${nextNum}`);
+    // Не даем свайпать влево на 1-м подъезде и вправо на 2-м
+    if ((currentNum === 1 && diffX > 0) || (currentNum === 2 && diffX < 0)) return;
 
-        if (!nextEntrance) return;
+    const nextNum = currentNum === 1 ? 2 : 1;
+    const nextEntrance = document.getElementById(`entrance${nextNum}`);
 
-        // Показываем соседний подъезд
-        nextEntrance.style.display = 'flex';
-        nextEntrance.style.position = 'absolute';
-        nextEntrance.style.top = '0';
-        nextEntrance.style.left = '0';
-        nextEntrance.style.width = '100%';
-        nextEntrance.style.zIndex = '5';
-        nextEntrance.style.opacity = '1';
-        nextEntrance.style.pointerEvents = 'none';
-        nextEntrance.style.transition = 'none';
+    if (!nextEntrance) return;
 
-        // Текущий подъезд двигается за пальцем
-        currentEntrance.style.transition = 'none';
-        currentEntrance.style.position = 'relative';
-        currentEntrance.style.zIndex = '6';
-        currentEntrance.style.transform = `translateX(${diff}px)`;
+    nextEntrance.style.cssText = `display: flex; position: absolute; top: 0; left: 0; width: 100%; z-index: 5; opacity: 1; pointer-events: none; transition: none;`;
 
-        // Соседний подъезд стоит сразу за краем экрана
-        const offset = diff > 0 ? -window.innerWidth : window.innerWidth;
-        nextEntrance.style.transform = `translateX(${diff + offset}px)`;
+    currentEntrance.style.transition = 'none';
+    currentEntrance.style.position = 'relative';
+    currentEntrance.style.zIndex = '6';
+    currentEntrance.style.transform = `translateX(${diffX}px)`;
 
-        e.preventDefault();
-    }, { passive: false });
+    const offset = diffX > 0 ? -window.innerWidth : window.innerWidth;
+    nextEntrance.style.transform = `translateX(${diffX + offset}px)`;
+
+    if (e.cancelable) e.preventDefault();
+}, { passive: false });
 
     document.addEventListener('touchend', function(e) {
     if (!isDragging || !currentEntrance) return;
