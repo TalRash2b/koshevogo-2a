@@ -313,28 +313,66 @@ function closeInfo() {
 }
 
 // 9. Переключение подъездов
-function switchEntrance(entranceNum) {
-    const container = document.querySelector('.building-container');
-    const entrance = document.getElementById(`entrance${entranceNum}`);
-
-    // На мобильных устройствах плавно скроллим контейнер к выбранному подъезду
-    if (window.innerWidth < 768 && container && entrance) {
-        container.scrollTo({
-            left: entrance.offsetLeft,
-            behavior: 'smooth'
-        });
+function switchEntrance(num, direction) {
+    const currentEntrance = document.querySelector('.entrance.active');
+    const nextEntrance = document.getElementById(`entrance${num}`);
+    
+    if (currentEntrance === nextEntrance) return;
+    if (!currentEntrance || !nextEntrance) return;
+    
+    if (!direction) {
+        const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
+        direction = num > currentNum ? 'left' : 'right';
     }
-
-    // Подсвечиваем активный таб
+    
+    // Анимация ухода
+    currentEntrance.classList.remove('active');
+    currentEntrance.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease';
+    currentEntrance.style.transform = direction === 'left' ? 'translateX(-100%)' : 'translateX(100%)';
+    currentEntrance.style.opacity = '0';
+    
+    // Подготовка следующего
+    nextEntrance.style.display = 'flex';
+    nextEntrance.style.position = 'absolute';
+    nextEntrance.style.top = '0';
+    nextEntrance.style.left = '0';
+    nextEntrance.style.width = '100%';
+    nextEntrance.style.transform = direction === 'left' ? 'translateX(100%)' : 'translateX(-100%)';
+    nextEntrance.style.opacity = '0';
+    nextEntrance.style.pointerEvents = 'none';
+    nextEntrance.style.transition = 'none';
+    
+    // Форсируем reflow
+    void nextEntrance.offsetHeight;
+    
+    // Анимация появления
+    requestAnimationFrame(() => {
+        nextEntrance.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease';
+        nextEntrance.style.transform = 'translateX(0)';
+        nextEntrance.style.opacity = '1';
+    });
+    
+    // Обновляем табы
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    const activeTab = document.getElementById(`tab${entranceNum}`);
-    if (activeTab) {
-        activeTab.classList.add('active');
-    }
-
-    if (typeof updateTabSlider === 'function') {
-        updateTabSlider();
-    }
+    document.getElementById(`tab${num}`).classList.add('active');
+    updateTabSlider();
+    
+    // Завершаем анимацию
+    setTimeout(() => {
+        nextEntrance.classList.add('active');
+        nextEntrance.style.position = 'relative';
+        nextEntrance.style.pointerEvents = 'auto';
+        nextEntrance.style.transition = '';
+        nextEntrance.style.transform = '';
+        nextEntrance.style.opacity = '';
+        
+        currentEntrance.style.display = 'none';
+        currentEntrance.style.transform = '';
+        currentEntrance.style.opacity = '';
+        currentEntrance.style.transition = '';
+        
+        applyMobileFix();
+    }, 350);
 }
 
 // 10. Мобильный фикс
