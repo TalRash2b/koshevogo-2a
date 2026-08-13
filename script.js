@@ -558,7 +558,7 @@ document.head.appendChild(style);
         currentEntrance.style.position = '';
         currentEntrance.style.zIndex = '';
         return;
-
+    }
         const touch = e.changedTouches[0];
         const diff = touch.clientX - touchStartX;
 
