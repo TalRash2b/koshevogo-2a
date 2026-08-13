@@ -26,8 +26,14 @@ body {
     display: flex; 
     flex-direction: column; 
     align-items: center; 
-    overflow-x: hidden;
+    /* overflow-x: hidden; */
 }
+
+@media (min-width: 768px) {
+    body { 
+        padding: 30px; 
+        overflow-x: hidden; /* На ПК можно вернуть фиксацию ширины */
+    }
 
 header { 
     text-align: center; 
