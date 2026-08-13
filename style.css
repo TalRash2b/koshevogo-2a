@@ -206,11 +206,11 @@ header p {
         pointer-events: auto;
     }
     .entrance.exit-left {
-        opacity: 0;
+        opacity: 1;
         transform: translateX(-100%);
     }
     .entrance.exit-right {
-        opacity: 0;
+        opacity: 1;
         transform: translateX(100%);
     }
 }
