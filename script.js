@@ -588,8 +588,9 @@ document.head.appendChild(style);
     const duration = Date.now() - touchStartTime;
     const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
 
-    const isFlick = duration < 200 && Math.abs(diffX) > 20;
-    const isLongSwipe = Math.abs(diffX) >= 50;
+    // Увеличиваем чувствительность свайпа (чтобы меньше срабатывал возврат)
+    const isFlick = duration < 200 && Math.abs(diffX) > 15;
+    const isLongSwipe = Math.abs(diffX) >= 40;
     const shouldSwitch = isFlick || isLongSwipe;
 
     // ---- Возврат, если свайп слабый ----
@@ -619,9 +620,17 @@ document.head.appendChild(style);
     const nextEntrance = document.getElementById(`entrance${nextNum}`);
     if (!nextEntrance) return;
 
-    // Определяем направления для плавного выезда
-    const currentExit = currentNum === 1 ? '-100%' : '100%';
-    const nextEnter = '0';
+    // Явно задаём направления
+    let currentExit, nextEnter;
+    if (currentNum === 1 && nextNum === 2) {
+        // 1 → 2: первый уезжает влево, второй приезжает справа
+        currentExit = '-100%';
+        nextEnter = '0';
+    } else if (currentNum === 2 && nextNum === 1) {
+        // 2 → 1: второй уезжает вправо, первый приезжает слева
+        currentExit = '100%';
+        nextEnter = '0';
+    }
 
     // Анимация уезжает текущий
     currentEntrance.style.transition = 'transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.25s ease';
@@ -641,11 +650,9 @@ document.head.appendChild(style);
 
     // Финал
     setTimeout(() => {
-        // Скрываем старый
         currentEntrance.classList.remove('active');
         currentEntrance.style.cssText = 'display: none;';
 
-        // Делаем новый активным
         nextEntrance.classList.add('active');
         nextEntrance.style.cssText = 'display: flex; position: relative; pointer-events: auto;';
         
