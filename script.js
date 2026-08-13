@@ -318,7 +318,6 @@ function switchEntrance(num, direction) {
         direction = num > currentNum ? 'left' : 'right';
     }
     
-    currentEntrance.classList.remove('active');
     currentEntrance.classList.add(direction === 'left' ? 'exit-left' : 'exit-right');
     
     nextEntrance.style.display = 'flex';
