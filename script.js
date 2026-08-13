@@ -304,7 +304,7 @@ function closeInfo() {
     overlay.style.display = 'none';
     document.body.style.overflow = '';
     setTimeout(() => {
-    applyMobileFix();
+    //applyMobileFix();
 }, 50);
 }
 
