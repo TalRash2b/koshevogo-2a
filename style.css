@@ -1,499 +1,985 @@
 :root {
+
     --bg-color: #0f172a;
+
     --panel-bg: #1e293b;
+
     --floor-bg: #334155;
+
     --apt-occupied: #0284c7;
+
     --apt-empty: #334155;
+
     --text-main: #f8fafc;
+
     --text-muted: #94a3b8;
+
     --accent: #38bdf8;
+
     --card-bg: #2d3748;
+
 }
+
+
 
 * { 
+
     box-sizing: border-box; 
+
     margin: 0; 
+
     padding: 0; 
+
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+
     -webkit-tap-highlight-color: transparent;
+
 }
+
+
 
 body { 
+
     background-color: var(--bg-color); 
+
     color: var(--text-main); 
+
     padding: 10px; 
+
     min-height: 100vh; 
+
     display: flex; 
+
     flex-direction: column; 
+
     align-items: center; 
-    /* overflow-x: hidden; */
+
+    overflow-x: hidden;
+
 }
 
-@media (min-width: 768px) {
-    body { 
-        padding: 30px; 
-        overflow-x: hidden; /* На ПК можно вернуть фиксацию ширины */
-    }
+
 
 header { 
+
     text-align: center; 
+
     margin: 10px 0 15px 0; 
+
 }
+
+
 
 header h1 { 
+
     font-size: 1.8rem; 
+
     color: var(--accent); 
+
 }
+
+
 
 header p { 
+
     color: var(--text-muted);
+
     font-size: 0.9rem;
+
 }
+
+
 
 /* ===== ТАБЫ ===== */
+
 .tabs-container {
+
     position: relative;
+
     display: flex;
+
     width: 100%;
+
     max-width: 500px;
+
     background: var(--panel-bg);
+
     padding: 5px;
+
     border-radius: 8px;
+
     margin-bottom: 15px;
+
     border: 1px solid #475569;
+
     gap: 5px;
+
     overflow: hidden;
+
 }
+
+
 
 .tab-slider {
+
     position: absolute;
+
     bottom: 5px;
+
     left: 5px;
+
     height: calc(100% - 10px);
+
     background: #0284C7;
+
     border-radius: 6px;
+
     transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1), width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
     z-index: 0;
+
     pointer-events: none;
+
     width: calc(100% - 10px);
+
 }
+
+
 
 .tab-btn {
+
     flex: 1;
+
     position: relative;
+
     z-index: 1;
+
     background: transparent;
+
     border: none;
+
     color: var(--text-muted);
+
     padding: 14px 8px;
+
     font-size: 1.2rem;
+
     font-weight: 600;
+
     cursor: pointer;
+
     border-radius: 6px;
+
     transition: color 0.3s ease;
+
     display: flex;
+
     flex-direction: column;
+
     align-items: center;
+
     justify-content: center;
+
     gap: 4px;
+
     min-width: 0;
+
     min-height: 64px;
+
 }
+
+
 
 .tab-btn.active {
+
     background: transparent;
+
     color: #ffffff;
+
 }
+
+
 
 .tab-stats {
+
     font-size: 0.85rem;
+
     font-weight: 300;
+
     color: #94a3b8;
+
     transition: color 0.2s ease;
+
 }
+
+
 
 .tab-btn.active .tab-stats {
+
     color: #ffffff;
+
     opacity: 0.9;
+
 }
+
+
 
 @media (max-width: 767px) {
+
     .tabs-container {
+
         flex-direction: row;
+
         flex-wrap: nowrap;
+
         gap: 4px;
+
         padding: 4px;
+
     }
+
     .tab-btn {
+
         min-height: 54px;
+
         padding: 10px 4px;
+
         font-size: 1rem;
+
     }
+
     .tab-btn.active {
+
         font-size: 1rem;
+
         padding: 10px 4px;
+
     }
+
     .tab-stats {
+
         font-size: 0.75rem;
+
     }
+
 }
 
+
+
 @media (min-width: 768px) {
+
     .tabs-container {
+
         display: none !important;
+
     }
+
 }
+
+
 
 /* ===== ДОМ ===== */
+
 .building-container { 
+
     display: flex; 
+
     gap: 20px; 
+
     width: 100%; 
+
     max-width: 1200px; 
+
     justify-content: center; 
+
     position: relative;
+
 }
+
+
 
 .entrance {
+
     display: flex;
+
     flex-direction: column;
+
     background: var(--panel-bg);
+
     padding: 15px;
+
     border-radius: 12px;
+
     border: 2px solid #475569;
+
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5);
+
     width: 100%;
+
     max-width: 450px;
+
 }
+
+
 
 @media (max-width: 767px) {
+
     .building-container {
+
         justify-content: flex-start;
+
         overflow-x: auto;
+
         scroll-snap-type: x mandatory;
+
         scroll-behavior: smooth;
+
         -webkit-overflow-scrolling: touch;
+
         scrollbar-width: none;
+
         gap: 0;
+
     }
+
+
 
     .building-container::-webkit-scrollbar {
+
         display: none;
+
     }
+
+
 
     .entrance-title {
+
         display: none !important;
+
     }
+
+
 
     .entrance {
+
         position: relative;
+
         flex: 0 0 100%;
+
         min-width: 100%;
+
         max-width: 100%;
+
         opacity: 1;
+
         transform: none;
+
         pointer-events: auto;
+
         margin: 0;
+
         scroll-snap-align: start;
+
         scroll-snap-stop: always;
+
     }
+
 }
+
+
 
 /* ===== ЭТАЖИ И КВАРТИРЫ ===== */
+
 .floor { 
+
     display: flex; 
+
     align-items: center; 
+
     gap: 10px; 
+
     padding: 6px 0; 
+
     border-bottom: 1px dashed #475569; 
+
 }
+
+
 
 .floor:last-child { 
+
     border-bottom: none; 
+
 }
+
+
 
 .floor-number { 
+
     width: 25px; 
+
     font-weight: bold; 
+
     color: var(--text-muted); 
+
     text-align: center; 
+
     font-size: 0.85rem; 
+
 }
+
+
 
 .apartments { 
+
     display: flex; 
+
     gap: 8px; 
+
     flex-grow: 1;
+
     justify-content: space-between;
+
 }
+
+
 
 .apartment { 
+
     flex: 1;
+
     height: 46px; 
+
     background-color: var(--apt-occupied); 
+
     border-radius: 6px; 
+
     display: flex; 
+
     flex-direction: column; 
+
     align-items: center; 
+
     justify-content: center; 
+
     cursor: pointer; 
+
     transition: transform 0.1s ease, border-color 0.2s ease; 
+
     border: 2px solid transparent; 
+
 }
+
+
 
 .apartment:active { 
+
     transform: scale(0.95); 
+
 }
+
+
 
 .apartment.empty { 
+
     background-color: var(--apt-empty); 
+
 }
+
+
 
 .apt-num { 
+
     font-weight: bold; 
+
     font-size: 1.1rem;
+
     line-height: 1.2;
+
 }
+
+
 
 .apt-count { 
+
     font-size: 0.8rem; 
+
     color: rgb(177, 231, 252);
+
     line-height: 1.2;
+
     margin-top: 5px;
+
     display: flex;
+
     justify-content: center;
+
     gap: 1px;
+
 }
+
+
 
 .apartment.empty .apt-count { 
+
     color: #94a3b8; 
+
 }
+
+
 
 /* ===== ИНФО-ПАНЕЛЬ ===== */
+
 .info-panel { 
+
     position: fixed; 
+
     left: 0;
+
     bottom: -100%;
+
     width: 100vw; 
+
     height: 75vh;
+
     background: #1e293b; 
+
     box-shadow: 0 -10px 30px rgba(0,0,0,0.7); 
+
     transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1), right 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+
     z-index: 100; 
+
     padding: 20px 20px 30px 20px; 
+
     display: flex; 
+
     flex-direction: column; 
+
     border-top: 4px solid var(--accent); 
+
     border-radius: 20px 20px 0 0;
+
 }
+
+
 
 .info-panel.active { 
+
     bottom: 0; 
+
 }
+
+
 
 .panel-drag-handle {
+
     width: 40px;
+
     height: 5px;
+
     background: #475569;
+
     border-radius: 4px;
+
     margin: -10px auto 15px auto;
+
     cursor: grab;
+
     touch-action: none;
+
 }
+
+
 
 .panel-drag-handle:active {
+
     cursor: grabbing;
+
 }
+
+
 
 .close-btn { 
+
     position: absolute; 
+
     top: 15px; 
+
     right: 20px; 
+
     background: none; 
+
     border: none; 
+
     color: var(--text-muted); 
+
     font-size: 2.2rem; 
+
     cursor: pointer; 
+
     z-index: 10;
+
     width: 60px;
+
     height: 60px;
+
     display: flex;
+
     align-items: center;
+
     justify-content: center;
+
 }
+
+
 
 .close-btn:hover {
+
     background: rgba(255,255,255,0.05);
+
     border-radius: 50%;
+
 }
+
+
 
 .close-btn:active {
+
     background: rgba(255,255,255,0.1);
+
     border-radius: 50%;
+
 }
+
+
 
 .panel-header { 
+
     margin-bottom: 20px; 
+
 }
+
+
 
 .panel-title { 
+
     font-size: 1.6rem; 
+
     color: var(--accent); 
+
 }
+
+
 
 .panel-subtitle { 
+
     color: var(--text-muted); 
+
     font-size: 0.85rem; 
+
     margin-top: 3px; 
+
 }
+
+
 
 .residents-list { 
+
     display: flex; 
+
     flex-direction: column; 
+
     gap: 12px; 
+
     overflow-y: auto; 
+
     flex-grow: 1; 
+
     pointer-events: auto;
+
 }
+
+
 
 .resident-card { 
+
     background: var(--card-bg); 
+
     padding: 14px; 
+
     border-radius: 8px; 
+
     border-left: 4px solid var(--accent);
+
 }
+
+
 
 .resident-card.no-name { 
+
     border-left-color: #38bdf8;
+
     opacity: 0.9;
+
 }
+
+
 
 .res-name { 
+
     font-weight: bold; 
+
     font-size: 1.05rem; 
+
     margin-bottom: 4px; 
+
 }
+
+
 
 .res-phone { 
+
     color: var(--accent); 
+
     font-size: 0.95rem; 
+
     display: flex; 
+
     align-items: center; 
+
     gap: 5px; 
+
     text-decoration: none; 
+
 }
+
+
 
 .res-meta { 
+
     margin-top: 6px; 
+
     font-size: 0.8rem; 
+
     color: var(--text-muted); 
+
 }
+
+
 
 /* ===== ОВЕРЛЕЙ ===== */
+
 .overlay { 
+
     position: fixed; 
+
     top: 0; 
+
     left: 0; 
+
     width: 100vw; 
+
     height: 100vh; 
+
     background: rgba(15, 23, 42, 0.7); 
+
     backdrop-filter: blur(4px); 
+
     display: none; 
+
     z-index: 99; 
+
     opacity: 0;
+
     transition: opacity 0.2s ease;
+
     pointer-events: auto;
+
 }
+
+
 
 .overlay.active { 
+
     display: block; 
+
     opacity: 1;
+
 }
+
+
 
 /* ===== АДАПТИВНОСТЬ ПК ===== */
+
 @media (min-width: 768px) {
+
     body { padding: 30px; }
+
     header h1 { font-size: 2.3rem; }
+
     
+
     .tabs-container { display: none; }
+
     .entrance { display: flex; }
+
     
+
     .apartment:hover { 
+
         transform: scale(1.08); 
+
         border-color: var(--accent); 
+
         box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); 
+
     }
+
     
+
     .info-panel {
+
         left: auto;
+
         right: -420px;
+
         bottom: 0;
+
         width: 400px;
+
         height: 100vh;
+
         border-top: none;
+
         border-left: 4px solid var(--accent);
+
         border-radius: 0;
+
         padding: 40px 30px;
+
         pointer-events: none;
+
     }
+
     
+
     .info-panel.active {
+
         right: 0;
+
         bottom: 0;
+
         pointer-events: auto;
+
     }
+
     
+
     .panel-drag-handle { display: none; }
+
 }
+
+
 
 /* ===== ФИКСЫ ===== */
+
 .res-phone,
+
 .res-phone:visited,
+
 .res-phone:hover,
+
 .res-phone:active {
+
     color: #38bdf8 !important;
+
     text-decoration: none;
+
 }
+
+
 
 /* ===== ПРОГРЕСС-БАР ===== */
+
 .progress-wrapper {
+
     width: 100%;
+
     max-width: 450px;
+
     margin: 10px auto 0;
+
     padding: 0 10px;
+
 }
+
+
 
 .progress-bar-container {
+
     position: relative;
+
     width: 100%;
+
     height: 32px;
+
     background: #1e293b;
+
     border-radius: 16px;
+
     overflow: hidden;
+
     border: 1px solid #334155;
+
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+
 }
+
+
 
 .progress-fill {
+
     height: 100%;
+
     width: 0%;
+
     background: linear-gradient(90deg, #38bdf8, #0284c7);
+
     border-radius: 16px;
+
     transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+
 }
 
+
+
 .progress-label {
+
     position: absolute;
+
     top: 0;
+
     left: 0;
+
     width: 100%;
+
     height: 100%;
+
     display: flex;
+
     align-items: center;
+
     justify-content: center;
+
     font-size: 0.9rem;
+
     font-weight: 600;
+
     color: #f8fafc;
+
     text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+
     letter-spacing: 0.5px;
+
 }
