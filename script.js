@@ -386,7 +386,7 @@ function applyMobileFix() {
 
                 activeEntrance.classList.add('active');
                 activeEntrance.style.display = 'flex';
-                activeEntrance.style.position = 'relative';
+                activeEntrance.style.position = 'absolute';
                 activeEntrance.style.transform = '';
                 activeEntrance.style.opacity = '';
                 activeEntrance.style.pointerEvents = 'auto';
