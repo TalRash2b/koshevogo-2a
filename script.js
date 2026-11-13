@@ -268,7 +268,22 @@ function buildEntrance(containerId, startApt, entranceNum) {
             const empty = residents.length === 0;
             
             const aptDiv = document.createElement('div');
-            aptDiv.className = `apartment ${empty ? 'empty' : ''}`;
+            
+            // Берем голос для этой квартиры
+            const vote = votesDatabase[aptNum];
+            let aptClass = 'apartment';
+            if (empty) aptClass += ' empty';
+            
+            // Добавляем классы для полосок
+            if (vote) {
+                if (vote.forTSZH === true)       aptClass += ' vote-for';
+                else if (vote.forTSZH === false) aptClass += ' vote-against';
+                else if (vote.forTSZH === 'abstain') aptClass += ' vote-abstain';
+                
+                if (vote.attend === true) aptClass += ' attend-yes';
+            }
+            
+            aptDiv.className = aptClass;
             
             const peopleIcons = empty ? '' : `<i class="fa-regular fa-user"></i>`.repeat(residents.length);
             
@@ -276,6 +291,7 @@ function buildEntrance(containerId, startApt, entranceNum) {
                 <div class="apt-num">${aptNum}</div>
                 <div class="apt-count">${peopleIcons}</div>
             `;
+            
             aptDiv.addEventListener('click', () => showInfo(aptNum, floor, residents));
             aptGrid.appendChild(aptDiv);
         }
