@@ -1,25 +1,22 @@
 // === НАСТРОЙКА: ID вашей Google Таблицы ===
 const SPREADSHEET_ID = '15O63umHMD-ghB3CQ7iPPKKESqkEFLzzy3BgauZQOzMs';
-const SHEET_RESIDENTS = '';        // Пустая строка = первый лист (жильцы)
-const SHEET_TSZH = 'TSZH';         // Наш новый лист
-const TOTAL_APTS = 88;
 
 let houseDatabase = {};
-let votesDatabase = {};            // Сюда складываем голоса
 
 // 1. Загрузка данных
 async function loadDataFromGoogleSheets() {
+    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
+    
     showLoadingStatus('Загрузка данных...');
     
     try {
-        // Загружаем оба листа параллельно для скорости
-        const [residentsJson, votesJson] = await Promise.all([
-            fetchSheet(SHEET_RESIDENTS),
-            fetchSheet(SHEET_TSZH),
-        ]);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Ошибка сети');
         
-        parseData(residentsJson);
-        parseVotes(votesJson);
+        const text = await response.text();
+        const jsonData = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
+        
+        parseData(jsonData);
         renderBuilding();
         hideLoadingStatus();
         updateHeader();
@@ -33,19 +30,9 @@ async function loadDataFromGoogleSheets() {
     }
 }
 
-async function fetchSheet(sheetName) {
-    const base = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
-    const url = sheetName ? `${base}&sheet=${encodeURIComponent(sheetName)}&_=${Date.now()}` : base;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Ошибка сети');
-    const text = await response.text();
-    return JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
-}
-
-// 2. Парсер жильцов
+// 2. Парсер данных
 function parseData(jsonData) {
     houseDatabase = {};
-    if (!jsonData || !jsonData.table || !jsonData.table.rows) return;
     
     const rows = jsonData.table.rows;
     
@@ -62,7 +49,7 @@ function parseData(jsonData) {
         if (!name || !aptRaw) continue;
         
         const aptNum = parseInt(aptRaw);
-        if (isNaN(aptNum) || aptNum < 1 || aptNum > TOTAL_APTS) continue;
+        if (isNaN(aptNum) || aptNum < 1 || aptNum > 88) continue;
         
         if (!houseDatabase[aptNum]) {
             houseDatabase[aptNum] = [];
@@ -91,58 +78,6 @@ function parseData(jsonData) {
             });
         }
     }
-}
-
-// 2.5. Парсер голосов по ТСЖ
-function parseVotes(jsonData) {
-    votesDatabase = {};
-    if (!jsonData || !jsonData.table || !jsonData.table.rows) return;
-    
-    const rows = jsonData.table.rows;
-    
-    for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row || !row.c) continue;
-        
-        const timeRaw = row.c[0] ? String(row.c[0].f || row.c[0].v || '').trim() : '';
-        const aptRaw  = row.c[1] ? String(row.c[1].v || '').trim() : '';
-        const forRaw  = row.c[2] ? String(row.c[2].v || '').trim() : '';
-        const attRaw  = row.c[3] ? String(row.c[3].v || '').trim() : '';
-        
-        const aptNum = parseInt(aptRaw);
-        if (isNaN(aptNum) || aptNum < 1 || aptNum > TOTAL_APTS) continue;
-        
-        const vote = {
-            forTSZH: parseVoteAnswer(forRaw),
-            attend:  parseVoteAnswer(attRaw),
-            time:    timeRaw,
-        };
-        
-        // Берем последний ответ по квартире (защита от дублей)
-        // Заменяем точки на дефисы, чтобы JS смог распарсить дату
-        const safeTime = vote.time.replace(/\./g, '-').replace(' ', 'T');
-        const parsedTime = new Date(safeTime).getTime() || 0;
-        
-        const prev = votesDatabase[aptNum];
-        let prevParsedTime = 0;
-        if (prev) {
-            const safePrevTime = prev.time.replace(/\./g, '-').replace(' ', 'T');
-            prevParsedTime = new Date(safePrevTime).getTime() || 0;
-        }
-        
-        if (!prev || parsedTime >= prevParsedTime) {
-            votesDatabase[aptNum] = vote;
-        }
-    }
-    console.log('Загруженные голоса:', votesDatabase); 
-}
-
-function parseVoteAnswer(raw) {
-    const s = String(raw).trim().toLowerCase();
-    if (/^(да|yes|1|\+)$/.test(s)) return true;
-    if (/^(нет|no|0|-)$/.test(s)) return false;
-    if (/^(воздержался|пока не знаю|не знаю|maybe)$/.test(s)) return 'abstain';
-    return null;
 }
 
 // 3. Форматирование телефона
@@ -274,22 +209,7 @@ function buildEntrance(containerId, startApt, entranceNum) {
             const empty = residents.length === 0;
             
             const aptDiv = document.createElement('div');
-            
-            // Берем голос для этой квартиры
-            const vote = votesDatabase[aptNum];
-            let aptClass = 'apartment';
-            if (empty) aptClass += ' empty';
-            
-            // Добавляем классы для полосок
-            if (vote) {
-                if (vote.forTSZH === true)       aptClass += ' vote-for';
-                else if (vote.forTSZH === false) aptClass += ' vote-against';
-                else if (vote.forTSZH === 'abstain') aptClass += ' vote-abstain';
-                
-                if (vote.attend === true) aptClass += ' attend-yes';
-            }
-            
-            aptDiv.className = aptClass;
+            aptDiv.className = `apartment ${empty ? 'empty' : ''}`;
             
             const peopleIcons = empty ? '' : `<i class="fa-regular fa-user"></i>`.repeat(residents.length);
             
@@ -297,10 +217,7 @@ function buildEntrance(containerId, startApt, entranceNum) {
                 <div class="apt-num">${aptNum}</div>
                 <div class="apt-count">${peopleIcons}</div>
             `;
-            
             aptDiv.addEventListener('click', () => showInfo(aptNum, floor, residents));
-            
-            // ВОТ ЭТА СТРОЧКА БЫЛА ПОТЕРЯНА! Без нее окна не добавлялись на страницу.
             aptGrid.appendChild(aptDiv);
         }
         
@@ -312,9 +229,8 @@ function buildEntrance(containerId, startApt, entranceNum) {
 
 // 7. Информационная панель
 function showInfo(aptNum, floor, residents) {
-    const entranceNum = aptNum <= 44 ? 1 : 2;
     document.getElementById('panelAptNum').textContent = `Квартира №${aptNum}`;
-    document.getElementById('panelAptMeta').textContent = `Этаж ${floor}, Подъезд ${entranceNum}`;
+    document.getElementById('panelAptMeta').textContent = `Этаж ${floor}`;
     
     const container = document.getElementById('residentsContainer');
     container.innerHTML = '';
@@ -358,54 +274,6 @@ function showInfo(aptNum, floor, residents) {
             container.appendChild(card);
         });
     }
-
-    // Блок голосования по ТСЖ
-    const vote = votesDatabase[aptNum];
-    const voteBlock = document.createElement('div');
-    voteBlock.className = 'vote-block';
-    
-    if (vote) {
-        let positionText, positionIcon, positionClass;
-        if (vote.forTSZH === true) {
-            positionText = 'ЗА создание ТСЖ'; positionIcon = '✅'; positionClass = 'vote-for';
-        } else if (vote.forTSZH === false) {
-            positionText = 'ПРОТИВ создания ТСЖ'; positionIcon = '❌'; positionClass = 'vote-against';
-        } else if (vote.forTSZH === 'abstain') {
-            positionText = 'ВОЗДЕРЖАЛСЯ'; positionIcon = '🟡'; positionClass = 'vote-abstain';
-        } else {
-            positionText = 'Не голосовал по ТСЖ'; positionIcon = '⚪'; positionClass = 'vote-none';
-        }
-        
-        let attendText, attendIcon, attendClass;
-        if (vote.attend === true) {
-            attendText = 'УЧАСТВУЕТ в голосовании (кворум)'; attendIcon = '✅'; attendClass = 'attend-yes';
-        } else if (vote.attend === false) {
-            attendText = 'НЕ УЧАСТВУЕТ в голосовании'; attendIcon = '⚪'; attendClass = 'attend-no';
-        } else {
-            attendText = 'Явка не подтверждена'; attendIcon = '⚪'; attendClass = 'attend-none';
-        }
-        
-        voteBlock.innerHTML = `
-            <div class="vote-title">🗳️ Голосование по ТСЖ</div>
-            <div class="vote-line ${positionClass}">
-                <span class="vote-icon">${positionIcon}</span>
-                <span>${positionText}</span>
-            </div>
-            <div class="vote-line ${attendClass}">
-                <span class="vote-icon">${attendIcon}</span>
-                <span>${attendText}</span>
-            </div>
-        `;
-    } else {
-        voteBlock.innerHTML = `
-            <div class="vote-title">🗳️ Голосование по ТСЖ</div>
-            <div class="vote-line vote-none">
-                <span class="vote-icon">⚪</span>
-                <span>Жильцы не голосовали</span>
-            </div>
-        `;
-    }
-    container.appendChild(voteBlock);
     
     document.getElementById('overlay').style.display = 'block';
     setTimeout(() => {
@@ -426,10 +294,17 @@ function closeInfo() {
     panel.style.opacity = '';
     panel.style.transition = '';
     panel.style.willChange = '';
+    panel.style.transform = '';
+    panel.style.display = '';
+    panel.style.position = '';
+    panel.style.top = '';
+    panel.style.left = '';
+    panel.style.right = '';
+    panel.style.width = '';
+    panel.style.height = '';
 
     overlay.style.display = 'none';
     document.body.style.overflow = '';
-
     setTimeout(() => {
         applyMobileFix();
     }, 50);
@@ -492,7 +367,7 @@ function switchEntrance(num, direction) {
     }, 350);
 }
 
-// 10. Мобильный фикс (ВОЗВРАЩЕНА ЛОГИКА ПОДГОНКИ ВЫСОТЫ)
+// 10. Мобильный фикс
 function applyMobileFix() {
     const isMobile = window.innerWidth < 768;
     const buildingContainer = document.querySelector('.building-container');
@@ -512,7 +387,6 @@ function applyMobileFix() {
             }
         });
 
-        // Подгоняем высоту контейнера, иначе он схлопывается в 0
         if (buildingContainer && activeEntrance) {
             buildingContainer.style.minHeight = '';
             const h = activeEntrance.scrollHeight;
@@ -556,6 +430,19 @@ window.addEventListener('resize', () => {
     applyMobileFix();
     updateTabSlider();
 });
+
+// 13. Убираем "Интерактивная модель дома"
+function removeSubtitle() {
+    const header = document.querySelector('header');
+    if (header) {
+        const p = header.querySelector('p');
+        if (p && !p.textContent.includes('Заполнено')) {
+            if (p.textContent === 'Интерактивная модель дома' || p.textContent === '') {
+                p.remove();
+            }
+        }
+    }
+}
 
 // 14. UI-функции
 function showLoadingStatus(text) {
@@ -742,4 +629,5 @@ document.getElementById('closeBtn').addEventListener('click', closeInfo);
 document.getElementById('overlay').addEventListener('click', closeInfo);
 
 // 16. Запуск!
+removeSubtitle();
 loadDataFromGoogleSheets();
