@@ -254,7 +254,8 @@ header p {
     justify-content: center; 
     cursor: pointer; 
     transition: transform 0.1s ease, border-color 0.2s ease; 
-    border: 2px solid transparent; 
+    border: 2px solid transparent;
+    position: relative;
 }
 
 .apartment:active { 
@@ -264,6 +265,32 @@ header p {
 .apartment.empty { 
     background-color: var(--apt-empty); 
 }
+
+/* Полосы голосования */
+.apartment::before,
+.apartment::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: transparent;
+    pointer-events: none;
+    transition: background 0.2s ease;
+}
+.apartment::before {
+    left: 0;
+    border-radius: 6px 0 0 6px;
+}
+.apartment::after {
+    right: 0;
+    border-radius: 0 6px 6px 0;
+}
+
+.apartment.vote-for::before     { background: #22c55e; } /* Зеленый */
+.apartment.vote-against::before { background: #ef4444; } /* Красный */
+.apartment.vote-abstain::before { background: #eab308; } /* Желтый */
+.apartment.attend-yes::after    { background: #cbd5e1; } /* Светло-серый */
 
 .apt-num { 
     font-weight: bold; 
