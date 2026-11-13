@@ -283,26 +283,18 @@ function buildEntrance(containerId, startApt, entranceNum) {
                 if (vote.attend === true) aptClass += ' attend-yes';
             }
             
-            // Задаем класс и принудительно красим фон, если есть голос
             aptDiv.className = aptClass;
-            if (vote && vote.attend === true) {
-                aptDiv.style.backgroundColor = '#0284c7'; // Загорается синим, если придет
-            } else if (vote) {
-                aptDiv.style.backgroundColor = '#1e293b'; // Темнеет, если проголосовал, но не придет
-            }
             
+            // Возвращаем человечков (сколько контактов - столько иконок)
             const peopleIcons = empty ? '' : `<i class="fa-regular fa-user"></i>`.repeat(residents.length);
             
-            // Возвращаем людей в окна
             aptDiv.innerHTML = `
                 <div class="apt-num">${aptNum}</div>
                 <div class="apt-count">${peopleIcons}</div>
             `;
             
-            // Возвращаем клик по квартире (шторка)
+            // Не забываем клик!
             aptDiv.addEventListener('click', () => showInfo(aptNum, floor, residents));
-            aptGrid.appendChild(aptDiv);
-        }
         
         floorRow.appendChild(aptGrid);
         container.appendChild(floorRow);
