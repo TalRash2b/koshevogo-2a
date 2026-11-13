@@ -274,6 +274,18 @@ function updateTSZHStats() {
         ? `✅ Решение принято (нужно ≥ ${s.decisionNeeded} из ${s.attend})`
         : `❌ Решения нет (нужно ≥ ${s.decisionNeeded} из ${s.attend}, не хватает ${s.decisionNeeded - s.forAndAttend})`;
     dVerdict.className = 'tszh-verdict ' + (s.hasDecision ? 'ok' : 'fail');
+
+   // === ДОБАВЛЯЕМ ЭТОТ БЛОК ДЛЯ ОБНОВЛЕНИЯ ЛЕГЕНДЫ ===
+    const legendFor = document.getElementById('legendVoteFor');
+    const legendAgainst = document.getElementById('legendVoteAgainst');
+    const legendAbstain = document.getElementById('legendVoteAbstain');
+    const legendAttend = document.getElementById('legendAttendYes');
+
+    if (legendFor) legendFor.textContent = `(${s.forTSZH})`;
+    if (legendAgainst) legendAgainst.textContent = `(${s.against})`;
+    if (legendAbstain) legendAbstain.textContent = `(${s.abstain})`;
+    if (legendAttend) legendAttend.textContent = `(${s.attend})`;
+    // ===================================================
 }
 
 /* =========================================================
