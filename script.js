@@ -355,23 +355,26 @@ function switchEntrance(num, direction) {
 
 function applyMobileFix() {
     const isMobile = window.innerWidth < 768;
-    const buildingContainer = document.querySelector('.building-container');
+
     if (isMobile) {
         const activeTab = document.querySelector('.tab-btn.active');
         const num = activeTab ? (activeTab.id === 'tab1' ? 1 : 2) : 1;
         const activeEntrance = document.getElementById(`entrance${num}`);
+
         document.querySelectorAll('.entrance').forEach(el => {
-            if (el === activeEntrance) { el.classList.add('active'); el.style.display = 'flex'; }
-            else { el.classList.remove('active'); el.style.display = 'none'; }
+            if (el === activeEntrance) {
+                el.classList.add('active');
+                el.style.display = 'flex';
+            } else {
+                el.classList.remove('active');
+                el.style.display = 'none';
+            }
         });
-        if (buildingContainer && activeEntrance) {
-            buildingContainer.style.minHeight = '';
-            const h = activeEntrance.scrollHeight;
-            if (h > 0) buildingContainer.style.minHeight = h + 'px';
-        }
     } else {
-        document.querySelectorAll('.entrance').forEach(el => { el.classList.add('active'); el.style.display = 'flex'; });
-        if (buildingContainer) buildingContainer.style.minHeight = '';
+        document.querySelectorAll('.entrance').forEach(el => {
+            el.classList.add('active');
+            el.style.display = 'flex';
+        });
     }
 }
 
