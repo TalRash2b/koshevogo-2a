@@ -245,11 +245,11 @@ header p {
 
 .apartment { 
     flex: 1;
-    height: 46px; 
+    height: 46px; /* ОБЯЗАТЕЛЬНО */
     background-color: var(--apt-occupied); 
     border-radius: 6px; 
     display: flex; 
-    flex-direction: column; 
+    flex-direction: column; /* ОБЯЗАТЕЛЬНО */
     align-items: center; 
     justify-content: center; 
     cursor: pointer; 
