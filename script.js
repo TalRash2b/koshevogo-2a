@@ -1,25 +1,29 @@
 // === НАСТРОЙКА: ID вашей Google Таблицы ===
 const SPREADSHEET_ID = '15O63umHMD-ghB3CQ7iPPKKESqkEFLzzy3BgauZQOzMs';
+const SHEET_RESIDENTS = '';        // Пустая строка = первый лист (жильцы)
+const SHEET_TSZH = 'TSZH';         // Наш новый лист
+const TOTAL_APTS = 88;
 
 let houseDatabase = {};
+let votesDatabase = {};            // Сюда будем складывать голоса
 
 // 1. Загрузка данных
 async function loadDataFromGoogleSheets() {
-    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
-    
     showLoadingStatus('Загрузка данных...');
     
     try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Ошибка сети');
+        // Загружаем оба листа параллельно для скорости
+        const [residentsJson, votesJson] = await Promise.all([
+            fetchSheet(SHEET_RESIDENTS),
+            fetchSheet(SHEET_TSZH),
+        ]);
         
-        const text = await response.text();
-        const jsonData = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
-        
-        parseData(jsonData);
+        parseData(residentsJson);
+        parseVotes(votesJson);       // Парсим голоса
         renderBuilding();
         hideLoadingStatus();
         updateHeader();
+        // updateTSZHStats();        // Включим на следующем шаге
         
         applyMobileFix();
         setTimeout(updateTabSlider, 100);
@@ -28,6 +32,16 @@ async function loadDataFromGoogleSheets() {
         hideLoadingStatus();
         showErrorState();
     }
+}
+
+async function fetchSheet(sheetName) {
+    const base = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
+    // Добавляем метку времени (_=...), чтобы браузер не кэшировал старые данные
+    const url = sheetName ? `${base}&sheet=${encodeURIComponent(sheetName)}&_=${Date.now()}` : base;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Ошибка сети');
+    const text = await response.text();
+    return JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
 }
 
 // 2. Парсер данных
@@ -78,6 +92,50 @@ function parseData(jsonData) {
             });
         }
     }
+}
+
+// 2.5. Парсер голосов по ТСЖ
+function parseVotes(jsonData) {
+    votesDatabase = {};
+    if (!jsonData || !jsonData.table || !jsonData.table.rows) return;
+    
+    const rows = jsonData.table.rows;
+    
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || !row.c) continue;
+        
+        // Достаем данные из колонок (A=0, B=1, C=2, D=3)
+        const timeRaw = row.c[0] ? String(row.c[0].f || row.c[0].v || '').trim() : '';
+        const aptRaw  = row.c[1] ? String(row.c[1].v || '').trim() : '';
+        const forRaw  = row.c[2] ? String(row.c[2].v || '').trim() : '';
+        const attRaw  = row.c[3] ? String(row.c[3].v || '').trim() : '';
+        
+        const aptNum = parseInt(aptRaw);
+        if (isNaN(aptNum) || aptNum < 1 || aptNum > TOTAL_APTS) continue;
+        
+        const vote = {
+            forTSZH: parseVoteAnswer(forRaw),
+            attend:  parseVoteAnswer(attRaw),
+            time:    timeRaw,
+        };
+        
+        // Берем последний ответ по квартире (защита от дублей)
+        const prev = votesDatabase[aptNum];
+        if (!prev || new Date(vote.time).getTime() >= new Date(prev.time).getTime()) {
+            votesDatabase[aptNum] = vote;
+        }
+    }
+    console.log('Загруженные голоса:', votesDatabase); // Для проверки в консоли
+}
+
+// Преобразование текста из таблицы в логические значения
+function parseVoteAnswer(raw) {
+    const s = String(raw).trim().toLowerCase();
+    if (/^(да|yes|1|\+)$/.test(s)) return true;
+    if (/^(нет|no|0|-)$/.test(s)) return false;
+    if (/^(воздержался|пока не знаю|не знаю|maybe)$/.test(s)) return 'abstain';
+    return null;
 }
 
 // 3. Форматирование телефона
