@@ -578,4 +578,116 @@ function showErrorState() {
 }
 
 const style = document.createElement('style');
-style.textContent = `@keyframes slideUp { from { opacity:0
+style.textContent = `@keyframes slideUp { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }`;
+document.head.appendChild(style);
+
+/* =========================================================
+   СВАЙПЫ
+   ========================================================= */
+(function initSimpleSwipe() {
+    const THRESHOLD = 50, MAX_TIME = 600, MAX_VERT = 60;
+    let startX = 0, startY = 0, startTime = 0, tracking = false;
+
+    document.addEventListener('touchstart', function (e) {
+        if (window.innerWidth >= 768) return;
+        if (e.touches.length !== 1) return;
+        if (e.target.closest('#infoPanel, #overlay, .close-btn, a, button')) return;
+        const t = e.touches[0];
+        startX = t.clientX; startY = t.clientY; startTime = Date.now(); tracking = true;
+    }, { passive: true });
+
+    document.addEventListener('touchend', function (e) {
+        if (!tracking) return;
+        tracking = false;
+        if (window.innerWidth >= 768) return;
+        if (!e.changedTouches.length) return;
+        const t = e.changedTouches[0];
+        const diffX = t.clientX - startX;
+        const diffY = t.clientY - startY;
+        const duration = Date.now() - startTime;
+        if (duration > MAX_TIME) return;
+        if (Math.abs(diffY) > MAX_VERT) return;
+        if (Math.abs(diffX) < THRESHOLD) return;
+        const currentEntrance = document.querySelector('.entrance.active');
+        if (!currentEntrance) return;
+        const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
+        if (diffX < 0 && currentNum === 1) switchEntrance(2, 'left');
+        else if (diffX > 0 && currentNum === 2) switchEntrance(1, 'right');
+    }, { passive: true });
+})();
+
+(function initSwipeToClose() {
+    let startY = 0, currentY = 0, isDragging = false;
+    const panel = document.getElementById('infoPanel');
+    function isPanelActive() { return panel.classList.contains('active'); }
+
+    function onStart(e) {
+        if (!isPanelActive()) return;
+        if (e.target.closest('.close-btn, a, button')) return;
+        const touch = e.touches ? e.touches[0] : e;
+        startY = touch.clientY; isDragging = true;
+        panel.style.transition = 'none';
+        if (e.cancelable) e.preventDefault();
+    }
+    function onMove(e) {
+        if (!isDragging || !isPanelActive()) return;
+        if (e.cancelable) e.preventDefault();
+        const touch = e.touches ? e.touches[0] : e;
+        currentY = touch.clientY;
+        const diff = currentY - startY;
+        if (diff > 0) {
+            const progress = Math.min(diff / 300, 1);
+            panel.style.bottom = `-${diff}px`;
+            panel.style.opacity = 1 - progress * 0.5;
+            if (diff > 300) {
+                closeInfo();
+                isDragging = false;
+                document.body.style.overflow = '';
+                panel.style.willChange = '';
+            }
+        }
+    }
+    function onEnd() {
+        if (!isDragging) {
+            if (!isPanelActive()) document.body.style.overflow = '';
+            return;
+        }
+        isDragging = false;
+        document.body.style.overflow = '';
+        panel.style.willChange = '';
+        const currentBottom = parseInt(panel.style.bottom) || 0;
+        if (currentBottom < -150) {
+            closeInfo();
+        } else {
+            panel.style.transition = 'bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease';
+            panel.style.bottom = '0';
+            panel.style.opacity = '1';
+        }
+    }
+
+    panel.addEventListener('touchstart', onStart, { passive: false });
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd, { passive: false });
+    panel.addEventListener('mousedown', onStart);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+
+    const observer = new MutationObserver(() => {
+        if (!isPanelActive()) {
+            document.body.style.overflow = '';
+            panel.style.bottom = '';
+            panel.style.opacity = '';
+            panel.style.transition = '';
+            panel.style.willChange = '';
+        }
+    });
+    observer.observe(panel, { attributes: true, attributeFilter: ['class'] });
+})();
+
+document.getElementById('closeBtn').addEventListener('click', closeInfo);
+document.getElementById('overlay').addEventListener('click', closeInfo);
+
+/* =========================================================
+   СТАРТ
+   ========================================================= */
+loadDataFromGoogleSheets();
