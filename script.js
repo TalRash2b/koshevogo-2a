@@ -283,7 +283,13 @@ function buildEntrance(containerId, startApt, entranceNum) {
                 if (vote.attend === true) aptClass += ' attend-yes';
             }
             
+            // Задаем класс и принудительно красим фон, если есть голос
             aptDiv.className = aptClass;
+            if (vote && vote.attend === true) {
+                aptDiv.style.backgroundColor = '#0284c7'; // Загорается синим, если придет
+            } else if (vote) {
+                aptDiv.style.backgroundColor = '#1e293b'; // Темнеет, если проголосовал, но не придет
+            }
             
             const peopleIcons = empty ? '' : `<i class="fa-regular fa-user"></i>`.repeat(residents.length);
             
