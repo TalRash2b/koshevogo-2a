@@ -503,164 +503,68 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// ===== СВАЙП ДЛЯ ПЕРЕКЛЮЧЕНИЯ ПОДЪЕЗДОВ =====
-// ===== СВАЙП ДЛЯ ПЕРЕКЛЮЧЕНИЯ ПОДЪЕЗДОВ (ТВОЯ РАБОЧАЯ ВЕРСИЯ) =====
-(function initSwipe() {
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let touchStartTime = 0;
-    let currentEntrance = null;
-    let isDragging = false;
-    let isHorizontalSwipe = false;
-    let isDirectionLocked = false;
+// ===== ПРОСТОЙ СВАЙП ДЛЯ ПЕРЕКЛЮЧЕНИЯ ПОДЪЕЗДОВ =====
+// Никакого перетаскивания. Только детект свайпа -> вызов switchEntrance().
+// Плавность обеспечивает CSS transition у .entrance.
+(function initSimpleSwipe() {
+    const SWIPE_THRESHOLD = 50;   // минимальное смещение по X для срабатывания (px)
+    const MAX_TIME = 600;         // свайп должен уложиться в это время (мс)
+    const MAX_VERTICAL = 60;      // если палец ушёл по Y больше — это скролл, не свайп
 
-    document.addEventListener('touchstart', function(e) {
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+    let tracking = false;
+
+    function onTouchStart(e) {
         if (window.innerWidth >= 768) return;
+        if (e.touches.length !== 1) return;
         if (e.target.closest('#infoPanel, #overlay, .close-btn, a, button')) return;
-        
-        const touch = e.touches[0];
-        touchStartX = touch.clientX;
-        touchStartY = touch.clientY;
-        touchStartTime = Date.now();
 
-        currentEntrance = document.querySelector('.entrance.active');
+        const t = e.touches[0];
+        startX = t.clientX;
+        startY = t.clientY;
+        startTime = Date.now();
+        tracking = true;
+    }
+
+    function onTouchEnd(e) {
+        if (!tracking) return;
+        tracking = false;
+
+        if (window.innerWidth >= 768) return;
+        if (!e.changedTouches.length) return;
+
+        const t = e.changedTouches[0];
+        const diffX = t.clientX - startX;
+        const diffY = t.clientY - startY;
+        const duration = Date.now() - startTime;
+
+        // Слишком долго — это не свайп
+        if (duration > MAX_TIME) return;
+
+        // Ушёл по вертикали — это скролл, не свайп
+        if (Math.abs(diffY) > MAX_VERTICAL) return;
+
+        // Смещение по X недостаточное
+        if (Math.abs(diffX) < SWIPE_THRESHOLD) return;
+
+        const currentEntrance = document.querySelector('.entrance.active');
         if (!currentEntrance) return;
-
-        isDragging = true;
-        isHorizontalSwipe = false;
-        isDirectionLocked = false;
-    }, { passive: true });
-
-    document.addEventListener('touchmove', function(e) {
-        if (!isDragging || !currentEntrance || window.innerWidth >= 768) return;
-
-        const touch = e.touches[0];
-        const diffX = touch.clientX - touchStartX;
-        const diffY = touch.clientY - touchStartY;
-
-        if (!isDirectionLocked) {
-            const absX = Math.abs(diffX);
-            const absY = Math.abs(diffY);
-            if (absX > 6 || absY > 6) {
-                isDirectionLocked = true;
-                isHorizontalSwipe = absX > absY;
-            }
-        }
-
-        if (!isHorizontalSwipe) return;
-
-        if (e.cancelable) e.preventDefault();
-
         const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
 
-        if ((currentNum === 1 && diffX > 0) || (currentNum === 2 && diffX < 0)) return;
-
-        const nextNum = currentNum === 1 ? 2 : 1;
-        const nextEntrance = document.getElementById(`entrance${nextNum}`);
-        if (!nextEntrance) return;
-
-        nextEntrance.style.cssText = `display: flex; position: absolute; top: 0; left: 0; width: 100%; z-index: 5; opacity: 1; pointer-events: none; transition: none;`;
-
-        currentEntrance.style.transition = 'none';
-        currentEntrance.style.position = 'relative';
-        currentEntrance.style.zIndex = '6';
-        currentEntrance.style.transform = `translateX(${diffX}px)`;
-
-        const offset = diffX > 0 ? -window.innerWidth : window.innerWidth;
-        nextEntrance.style.transform = `translateX(${diffX + offset}px)`;
-    }, { passive: false });
-
-    document.addEventListener('touchend', function(e) {
-    if (!isDragging || !currentEntrance) {
-        isDragging = false;
-        return;
-    }
-
-    if (!isHorizontalSwipe) {
-        isDragging = false;
-        return;
-    }
-
-    isDragging = false;
-
-    const touch = e.changedTouches[0];
-    const diffX = touch.clientX - touchStartX;
-    const duration = Date.now() - touchStartTime;
-    const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
-
-    // Увеличиваем чувствительность свайпа (чтобы меньше срабатывал возврат)
-    const isFlick = duration < 200 && Math.abs(diffX) > 15;
-    const isLongSwipe = Math.abs(diffX) >= 40;
-    const shouldSwitch = isFlick || isLongSwipe;
-
-    // ---- Возврат, если свайп слабый ----
-    if (!shouldSwitch) {
-        currentEntrance.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)';
-        currentEntrance.style.transform = 'translateX(0)';
-
-        const nextNum = currentNum === 1 ? 2 : 1;
-        const nextEntrance = document.getElementById(`entrance${nextNum}`);
-        if (nextEntrance) {
-            nextEntrance.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)';
-            nextEntrance.style.transform = currentNum === 1 ? 'translateX(100%)' : 'translateX(-100%)';
+        // Свайп влево (diffX < 0) -> следующий подъезд
+        // Свайп вправо (diffX > 0) -> предыдущий подъезд
+        if (diffX < 0 && currentNum === 1) {
+            switchEntrance(2, 'left');
+        } else if (diffX > 0 && currentNum === 2) {
+            switchEntrance(1, 'right');
         }
-
-        setTimeout(() => {
-            if (nextEntrance) nextEntrance.style.cssText = 'display: none;';
-            currentEntrance.style.cssText = 'display: flex; position: relative;';
-            applyMobileFix();
-        }, 250);
-        return;
+        // Если свайп в «неправильную» сторону (1 вправо или 2 влево) — ничего не делаем
     }
 
-    // ---- Переключение ----
-    const nextNum = diffX < 0 ? 2 : 1;
-    if (currentNum === nextNum) return;
-
-    const nextEntrance = document.getElementById(`entrance${nextNum}`);
-    if (!nextEntrance) return;
-
-    // Явно задаём направления
-    let currentExit, nextEnter;
-    if (currentNum === 1 && nextNum === 2) {
-        // 1 → 2: первый уезжает влево, второй приезжает справа
-        currentExit = '-100%';
-        nextEnter = '0';
-    } else if (currentNum === 2 && nextNum === 1) {
-        // 2 → 1: второй уезжает вправо, первый приезжает слева
-        currentExit = '100%';
-        nextEnter = '0';
-    }
-
-    // Анимация уезжает текущий
-    currentEntrance.style.transition = 'transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.25s ease';
-    currentEntrance.style.transform = `translateX(${currentExit})`;
-    currentEntrance.style.opacity = '0';
-
-    // Анимация приезжает новый
-    nextEntrance.style.transition = 'transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.25s ease';
-    nextEntrance.style.transform = `translateX(${nextEnter})`;
-    nextEntrance.style.opacity = '1';
-    nextEntrance.style.pointerEvents = 'auto';
-
-    // Обновляем табы
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById(`tab${nextNum}`).classList.add('active');
-    updateTabSlider();
-
-    // Финал
-    setTimeout(() => {
-        currentEntrance.classList.remove('active');
-        currentEntrance.style.cssText = 'display: none;';
-
-        nextEntrance.classList.add('active');
-        nextEntrance.style.cssText = 'display: flex; position: relative; pointer-events: auto;';
-        
-        applyMobileFix();
-    }, 320);
-
-    if (navigator.vibrate) navigator.vibrate(10);
-}, { passive: true });
+    document.addEventListener('touchstart', onTouchStart, { passive: true });
+    document.addEventListener('touchend', onTouchEnd, { passive: true });
 })();
 
 
