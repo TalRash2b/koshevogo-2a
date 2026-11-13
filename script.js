@@ -5,7 +5,7 @@ const SHEET_TSZH = 'TSZH';         // Наш новый лист
 const TOTAL_APTS = 88;
 
 let houseDatabase = {};
-let votesDatabase = {};            // Сюда будем складывать голоса
+let votesDatabase = {};            // Сюда складываем голоса
 
 // 1. Загрузка данных
 async function loadDataFromGoogleSheets() {
@@ -19,7 +19,7 @@ async function loadDataFromGoogleSheets() {
         ]);
         
         parseData(residentsJson);
-        parseVotes(votesJson);       // Парсим голоса
+        parseVotes(votesJson);
         renderBuilding();
         hideLoadingStatus();
         updateHeader();
@@ -35,7 +35,6 @@ async function loadDataFromGoogleSheets() {
 
 async function fetchSheet(sheetName) {
     const base = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
-    // Добавляем метку времени (_=...), чтобы браузер не кэшировал старые данные
     const url = sheetName ? `${base}&sheet=${encodeURIComponent(sheetName)}&_=${Date.now()}` : base;
     const response = await fetch(url);
     if (!response.ok) throw new Error('Ошибка сети');
@@ -43,7 +42,7 @@ async function fetchSheet(sheetName) {
     return JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
 }
 
-// 2. Парсер данных жильцов
+// 2. Парсер жильцов
 function parseData(jsonData) {
     houseDatabase = {};
     if (!jsonData || !jsonData.table || !jsonData.table.rows) return;
@@ -105,7 +104,6 @@ function parseVotes(jsonData) {
         const row = rows[i];
         if (!row || !row.c) continue;
         
-        // Достаем данные из колонок (A=0, B=1, C=2, D=3)
         const timeRaw = row.c[0] ? String(row.c[0].f || row.c[0].v || '').trim() : '';
         const aptRaw  = row.c[1] ? String(row.c[1].v || '').trim() : '';
         const forRaw  = row.c[2] ? String(row.c[2].v || '').trim() : '';
@@ -121,7 +119,7 @@ function parseVotes(jsonData) {
         };
         
         // Берем последний ответ по квартире (защита от дублей)
-        // Заменяем точки на дефисы и убираем время, чтобы JS смог распарсить дату
+        // Заменяем точки на дефисы, чтобы JS смог распарсить дату
         const safeTime = vote.time.replace(/\./g, '-').replace(' ', 'T');
         const parsedTime = new Date(safeTime).getTime() || 0;
         
@@ -139,7 +137,6 @@ function parseVotes(jsonData) {
     console.log('Загруженные голоса:', votesDatabase); 
 }
 
-// Преобразование текста из таблицы в логические значения
 function parseVoteAnswer(raw) {
     const s = String(raw).trim().toLowerCase();
     if (/^(да|yes|1|\+)$/.test(s)) return true;
@@ -294,7 +291,6 @@ function buildEntrance(containerId, startApt, entranceNum) {
             
             aptDiv.className = aptClass;
             
-            // Возвращаем человечков (сколько контактов - столько иконок)
             const peopleIcons = empty ? '' : `<i class="fa-regular fa-user"></i>`.repeat(residents.length);
             
             aptDiv.innerHTML = `
@@ -302,10 +298,9 @@ function buildEntrance(containerId, startApt, entranceNum) {
                 <div class="apt-count">${peopleIcons}</div>
             `;
             
-            // Клик!
             aptDiv.addEventListener('click', () => showInfo(aptNum, floor, residents));
             
-            // ВАЖНО: Добавляем окно в сетку!
+            // ВОТ ЭТА СТРОЧКА БЫЛА ПОТЕРЯНА! Без нее окна не добавлялись на страницу.
             aptGrid.appendChild(aptDiv);
         }
         
@@ -370,40 +365,24 @@ function showInfo(aptNum, floor, residents) {
     voteBlock.className = 'vote-block';
     
     if (vote) {
-        // Позиция по ТСЖ
         let positionText, positionIcon, positionClass;
         if (vote.forTSZH === true) {
-            positionText = 'ЗА создание ТСЖ';
-            positionIcon = '✅';
-            positionClass = 'vote-for';
+            positionText = 'ЗА создание ТСЖ'; positionIcon = '✅'; positionClass = 'vote-for';
         } else if (vote.forTSZH === false) {
-            positionText = 'ПРОТИВ создания ТСЖ';
-            positionIcon = '❌';
-            positionClass = 'vote-against';
+            positionText = 'ПРОТИВ создания ТСЖ'; positionIcon = '❌'; positionClass = 'vote-against';
         } else if (vote.forTSZH === 'abstain') {
-            positionText = 'ВОЗДЕРЖАЛСЯ';
-            positionIcon = '🟡';
-            positionClass = 'vote-abstain';
+            positionText = 'ВОЗДЕРЖАЛСЯ'; positionIcon = '🟡'; positionClass = 'vote-abstain';
         } else {
-            positionText = 'Не голосовал по ТСЖ';
-            positionIcon = '⚪';
-            positionClass = 'vote-none';
+            positionText = 'Не голосовал по ТСЖ'; positionIcon = '⚪'; positionClass = 'vote-none';
         }
         
-        // Явка
         let attendText, attendIcon, attendClass;
         if (vote.attend === true) {
-            attendText = 'УЧАСТВУЕТ в голосовании (кворум)';
-            attendIcon = '✅';
-            attendClass = 'attend-yes';
+            attendText = 'УЧАСТВУЕТ в голосовании (кворум)'; attendIcon = '✅'; attendClass = 'attend-yes';
         } else if (vote.attend === false) {
-            attendText = 'НЕ УЧАСТВУЕТ в голосовании';
-            attendIcon = '⚪';
-            attendClass = 'attend-no';
+            attendText = 'НЕ УЧАСТВУЕТ в голосовании'; attendIcon = '⚪'; attendClass = 'attend-no';
         } else {
-            attendText = 'Явка не подтверждена';
-            attendIcon = '⚪';
-            attendClass = 'attend-none';
+            attendText = 'Явка не подтверждена'; attendIcon = '⚪'; attendClass = 'attend-none';
         }
         
         voteBlock.innerHTML = `
@@ -513,9 +492,10 @@ function switchEntrance(num, direction) {
     }, 350);
 }
 
-// 10. Мобильный фикс
+// 10. Мобильный фикс (ВОЗВРАЩЕНА ЛОГИКА ПОДГОНКИ ВЫСОТЫ)
 function applyMobileFix() {
     const isMobile = window.innerWidth < 768;
+    const buildingContainer = document.querySelector('.building-container');
 
     if (isMobile) {
         const activeTab = document.querySelector('.tab-btn.active');
@@ -531,11 +511,23 @@ function applyMobileFix() {
                 el.style.display = 'none';
             }
         });
+
+        // Подгоняем высоту контейнера, иначе он схлопывается в 0
+        if (buildingContainer && activeEntrance) {
+            buildingContainer.style.minHeight = '';
+            const h = activeEntrance.scrollHeight;
+            if (h > 0) {
+                buildingContainer.style.minHeight = h + 'px';
+            }
+        }
     } else {
         document.querySelectorAll('.entrance').forEach(el => {
             el.classList.add('active');
             el.style.display = 'flex';
         });
+        if (buildingContainer) {
+            buildingContainer.style.minHeight = '';
+        }
     }
 }
 
@@ -659,7 +651,6 @@ document.head.appendChild(style);
     document.addEventListener('touchend', onTouchEnd, { passive: true });
 })();
 
-
 // ===== СВАЙП ДЛЯ ЗАКРЫТИЯ ШТОРКИ =====
 (function initSwipeToClose() {
     let startY = 0;
@@ -671,17 +662,17 @@ document.head.appendChild(style);
         return panel.classList.contains('active');
     }
     
-function onStart(e) {
-    if (!isPanelActive()) return;
-    if (e.target.closest('.close-btn, a, button')) return;
+    function onStart(e) {
+        if (!isPanelActive()) return;
+        if (e.target.closest('.close-btn, a, button')) return;
 
-    const touch = e.touches ? e.touches[0] : e;
-    startY = touch.clientY;
-    isDragging = true;
+        const touch = e.touches ? e.touches[0] : e;
+        startY = touch.clientY;
+        isDragging = true;
 
-    panel.style.transition = 'none';
-    e.preventDefault();
-}
+        panel.style.transition = 'none';
+        e.preventDefault();
+    }
     
     function onMove(e) {
         if (!isDragging || !isPanelActive()) return;
