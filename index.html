@@ -1,191 +1,100 @@
-// === НАСТРОЙКА: ID вашей Google Таблицы ===
-const SPREADSHEET_ID = '15O63umHMD-ghB3CQ7iPPKKESqkEFLzzy3BgauZQOzMs';
-const SHEET_RESIDENTS = '';        
-const SHEET_TSZH = 'TSZH';         
-const TOTAL_APTS = 88;
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ул. Олега Кошевого, 2А — Карта жильцов</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <meta name="description" content="Интерактивная карта жильцов дома на ул. Олега Кошевого, 2А. Присоединяйтесь к соседям!">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-let houseDatabase = {};
-let votesDatabase = {};            
+    <meta property="og:title" content="ул. Олега Кошевого, 2А — Карта жильцов" />
+    <meta property="og:description" content="Интерактивная карта жильцов дома на ул. Олега Кошевого, 2А. Присоединяйтесь к соседям!" />
+    <meta property="og:image" content="https://talrash2b.github.io/koshevogo-2a/preview.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:url" content="https://talrash2b.github.io/koshevogo-2a/" />
+    <meta property="og:type" content="website" />
+</head>
+<body>
 
-async function loadDataFromGoogleSheets() {
-    showLoadingStatus('Загрузка данных...');
-    try {
-        const [residentsJson, votesJson] = await Promise.all([
-            fetchSheet(SHEET_RESIDENTS),
-            fetchSheet(SHEET_TSZH),
-        ]);
-        
-        parseData(residentsJson);
-        parseVotes(votesJson);
-        renderBuilding();
-        hideLoadingStatus();
-        updateHeader();
-        updateTSZHStats(); // <--- ОБНОВЛЯЕМ СТАТИСТИКУ
-        
-        applyMobileFix();
-        setTimeout(updateTabSlider, 100);
-    } catch (error) {
-        console.error(error);
-        hideLoadingStatus();
-        showErrorState();
-    }
-}
-
-async function fetchSheet(sheetName) {
-    const base = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
-    const url = sheetName ? `${base}&sheet=${encodeURIComponent(sheetName)}&_=${Date.now()}` : base;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Ошибка сети');
-    const text = await response.text();
-    return JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
-}
-
-function parseData(jsonData) {
-    houseDatabase = {};
-    if (!jsonData || !jsonData.table || !jsonData.table.rows) return;
-    const rows = jsonData.table.rows;
-    for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row || !row.c) continue;
-        const cells = row.c;
-        const name = cells[1] ? String(cells[1].v || cells[1].f || '').trim() : '';
-        const aptRaw = cells[2] ? String(cells[2].v || cells[2].f || '').trim() : '';
-        const phoneRaw = cells[3] ? String(cells[3].v || cells[3].f || '').trim() : '';
-        if (!name || !aptRaw) continue;
-        const aptNum = parseInt(aptRaw);
-        if (isNaN(aptNum) || aptNum < 1 || aptNum > TOTAL_APTS) continue;
-        if (!houseDatabase[aptNum]) houseDatabase[aptNum] = [];
-        const names = name.split(',').map(n => n.trim()).filter(n => n);
-        let phones = [];
-        if (phoneRaw) {
-            phones = phoneRaw.split(/[,;\s]+/).map(p => p.trim()).filter(p => p.length > 3);
-            phones = phones.map(p => formatPhone(p));
-        }
-        if (names.length === 1 && phones.length > 1) {
-            houseDatabase[aptNum].push({ fio: names[0], phones: phones });
-        } else {
-            names.forEach((n, index) => {
-                const phone = phones[index] || '';
-                houseDatabase[aptNum].push({ fio: n, phones: phone ? [phone] : [] });
-            });
-        }
-    }
-}
-
-function parseVotes(jsonData) {
-    votesDatabase = {};
-    if (!jsonData || !jsonData.table || !jsonData.table.rows) return;
-    const rows = jsonData.table.rows;
-    for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row || !row.c) continue;
-        const timeRaw = row.c[0] ? String(row.c[0].f || row.c[0].v || '').trim() : '';
-        const aptRaw  = row.c[1] ? String(row.c[1].v || '').trim() : '';
-        const forRaw  = row.c[2] ? String(row.c[2].v || '').trim() : '';
-        const attRaw  = row.c[3] ? String(row.c[3].v || '').trim() : '';
-        const aptNum = parseInt(aptRaw);
-        if (isNaN(aptNum) || aptNum < 1 || aptNum > TOTAL_APTS) continue;
-        
-        const vote = { forTSZH: parseVoteAnswer(forRaw), attend: parseVoteAnswer(attRaw), time: timeRaw };
-        
-        const safeTime = vote.time.replace(/\./g, '-').replace(' ', 'T');
-        const parsedTime = new Date(safeTime).getTime() || 0;
-        const prev = votesDatabase[aptNum];
-        let prevParsedTime = 0;
-        if (prev) {
-            const safePrevTime = prev.time.replace(/\./g, '-').replace(' ', 'T');
-            prevParsedTime = new Date(safePrevTime).getTime() || 0;
-        }
-        if (!prev || parsedTime >= prevParsedTime) votesDatabase[aptNum] = vote;
-    }
-}
-
-function parseVoteAnswer(raw) {
-    const s = String(raw).trim().toLowerCase();
-    if (/^(да|yes|1|\+)$/.test(s)) return true;
-    if (/^(нет|no|0|-)$/.test(s)) return false;
-    if (/^(воздержался|пока не знаю|не знаю|maybe)$/.test(s)) return 'abstain';
-    return null;
-}
-
-function formatPhone(phone) {
-    let cleaned = phone.replace(/[^0-9+]/g, '');
-    if (!cleaned.startsWith('+')) {
-        if (cleaned.length === 9) cleaned = '+375' + cleaned;
-        else if (cleaned.length === 10 && cleaned.startsWith('8')) cleaned = '+375' + cleaned.slice(1);
-        else if (cleaned.length === 11 && cleaned.startsWith('80')) cleaned = '+375' + cleaned.slice(2);
-        else if (cleaned.length === 12 && cleaned.startsWith('375')) cleaned = '+' + cleaned;
-    }
-    return cleaned;
-}
-
-function updateHeader() {
-    const filled = Object.keys(houseDatabase).length;
-    const percent = Math.round((filled / TOTAL_APTS) * 100);
-    const label = document.getElementById('progressLabel');
-    if (label) label.textContent = `Заполнено ${filled} из ${TOTAL_APTS} квартир (${percent}%)`;
-    const fill = document.getElementById('progressFill');
-    if (fill) fill.style.width = `${percent}%`;
-    updateTabStats();
-}
-
-function getEntranceStats() {
-    const total1 = 44, total2 = 44;
-    let filled1 = 0, filled2 = 0;
-    for (const aptNum in houseDatabase) {
-        const num = parseInt(aptNum);
-        if (num >= 1 && num <= 44) filled1++;
-        else if (num >= 45 && num <= 88) filled2++;
-    }
-    return { filled1, total1, percent1: Math.round((filled1 / total1) * 100), filled2, total2, percent2: Math.round((filled2 / total2) * 100) };
-}
-
-function updateTabStats() {
-    const stats = getEntranceStats();
-    const tabStats1 = document.getElementById('tabStats1');
-    const tabStats2 = document.getElementById('tabStats2');
-    if (tabStats1) tabStats1.textContent = `${stats.filled1}/${stats.total1} (${stats.percent1}%)`;
-    if (tabStats2) tabStats2.textContent = `${stats.filled2}/${stats.total2} (${stats.percent2}%)`;
-    updateTabSlider();
-}
-
-function calculateTSZHStats() {
-    let forTSZH = 0, against = 0, abstain = 0, attend = 0, forAndAttend = 0;
-    for (const apt in votesDatabase) {
-        const v = votesDatabase[apt];
-        if (v.forTSZH === true) forTSZH++;
-        else if (v.forTSZH === false) against++;
-        else if (v.forTSZH === 'abstain') abstain++;
-        if (v.attend === true) {
-            attend++;
-            if (v.forTSZH === true) forAndAttend++;
-        }
-    }
-    const quorumNeeded = Math.ceil(TOTAL_APTS * 2 / 3);
-    const decisionNeeded = attend > 0 ? Math.ceil(attend * 2 / 3) : 0;
-    return {
-        forTSZH, against, abstain, attend, forAndAttend,
-        notVoted: TOTAL_APTS - (forTSZH + against + abstain),
-        notAttend: TOTAL_APTS - attend,
-        quorumNeeded, decisionNeeded,
-        hasQuorum: attend >= quorumNeeded,
-        hasDecision: attend > 0 && forAndAttend >= decisionNeeded,
-        quorumPercent: Math.round(attend / TOTAL_APTS * 100),
-        decisionPercent: attend > 0 ? Math.round(forAndAttend / attend * 100) : 0,
-    };
-}
-
-function updateTSZHStats() {
-    const s = calculateTSZHStats();
-    const block = document.getElementById('tszhStats');
-    if (!block) return;
+<header>
+    <h1>ул. Олега Кошевого, 2А</h1>
+    <div class="progress-wrapper">
+        <div class="progress-bar-container">
+            <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+            <span class="progress-label" id="progressLabel">Заполнено 0 из 88 квартир (0%)</span>
+        </div>
+    </div>
+</header>
     
-    block.querySelector('#tszhVoteBreakdown').innerHTML = `🟢 За: <b>${s.forTSZH}</b> &nbsp;|&nbsp; 🔴 Против: <b>${s.against}</b> &nbsp;|&nbsp; 🟡 Воздержались: <b>${s.abstain}</b> &nbsp;|&nbsp; ⚪ Не голосовали: <b>${s.notVoted}</b>`;
-    block.querySelector('#tszhAttendBreakdown').innerHTML = `⬜ Придут: <b>${s.attend}</b> &nbsp;|&nbsp; ⚪ Не придут / не ответили: <b>${s.notAttend}</b>`;
+<div class="tabs-container" id="tabsContainer">
+    <div class="tab-slider" id="tabSlider"></div>
+    <button class="tab-btn active" id="tab1" onclick="switchEntrance(1)">
+        <span class="tab-label">1 Подъезд</span>
+        <span class="tab-stats" id="tabStats1">0%</span>
+    </button>
+    <button class="tab-btn" id="tab2" onclick="switchEntrance(2)">
+        <span class="tab-label">2 Подъезд</span>
+        <span class="tab-stats" id="tabStats2">0%</span>
+    </button>
+</div>
+
+<div class="building-container">
+    <div class="entrance active" id="entrance1">
+        <div class="entrance-title">1 Подъезд</div>
+    </div>
+    <div class="entrance" id="entrance2">
+        <div class="entrance-title">2 Подъезд</div>
+    </div>
+</div>
+
+<!-- Легенда -->
+<div class="tszh-legend">
+    <span><span class="legend-dot vote-for"></span> За ТСЖ</span>
+    <span><span class="legend-dot vote-against"></span> Против</span>
+    <span><span class="legend-dot vote-abstain"></span> Воздержался</span>
+    <span><span class="legend-dot attend-yes"></span> Придёт на собрание</span>
+</div>
+
+<!-- Статистика ТСЖ -->
+<div class="tszh-stats" id="tszhStats">
+    <h2>🗳️ Голосование по ТСЖ</h2>
+    <div class="tszh-breakdown" id="tszhVoteBreakdown"></div>
+    <div class="tszh-breakdown" id="tszhAttendBreakdown"></div>
     
-    const qFill = block.querySelector('#quorumFill');
-    const qLabel = block.querySelector('#quorumLabel');
-    const qVerdict = block.querySelector('#quorumVerdict');
-    qFill.style.width = s.quorumPercent + '%';
-    qLabel.textContent = `${s.attend} / ${TOTAL_APTS} (${s.quorumPercent}%)`;
-    qVerdict.textContent = s.hasQuorum ? `✅ Кворум есть (нужно ≥ ${s.quorumNeeded})` : `❌ Кворума нет (нужно ≥ ${s.quorumNeeded},
+    <div class="tszh-block">
+        <div class="tszh-block-title">Кворум (нужно ≥ 2/3 от 88)</div>
+        <div class="tszh-bar">
+            <div class="tszh-fill" id="quorumFill" style="width: 0%;"></div>
+            <span class="tszh-bar-label" id="quorumLabel">0 / 88 (0%)</span>
+        </div>
+        <div class="tszh-verdict" id="quorumVerdict">—</div>
+    </div>
+    
+    <div class="tszh-block">
+        <div class="tszh-block-title">Решение ТСЖ (нужно ≥ 2/3 от пришедших)</div>
+        <div class="tszh-bar">
+            <div class="tszh-fill" id="decisionFill" style="width: 0%;"></div>
+            <span class="tszh-bar-label" id="decisionLabel">0 / 0 (0%)</span>
+        </div>
+        <div class="tszh-verdict" id="decisionVerdict">—</div>
+    </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<div class="info-panel" id="infoPanel">
+    <div class="panel-drag-handle"></div>
+    <button class="close-btn" id="closeBtn" type="button">&times;</button>
+    <div class="panel-header">
+        <div class="panel-title" id="panelAptNum">Квартира №--</div>
+        <div class="panel-subtitle" id="panelAptMeta">Этаж --, Подъезд --</div>
+    </div>
+    <div class="residents-list" id="residentsContainer"></div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
