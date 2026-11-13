@@ -207,16 +207,6 @@ header p {
         transform: translateX(0);
         pointer-events: auto;
     }
-
-    .entrance.exit-left {
-        opacity: 0;
-        transform: translateX(-100%);
-    }
-
-    .entrance.exit-right {
-        opacity: 0;
-        transform: translateX(100%);
-    }
 } 
 
 /* ===== ЭТАЖИ И КВАРТИРЫ ===== */
