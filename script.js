@@ -381,45 +381,22 @@ function applyMobileFix() {
 
     if (isMobile) {
         const activeTab = document.querySelector('.tab-btn.active');
+        const num = activeTab ? (activeTab.id === 'tab1' ? 1 : 2) : 1;
+        const activeEntrance = document.getElementById(`entrance${num}`);
 
-        if (activeTab) {
-            const num = activeTab.id === 'tab1' ? 1 : 2;
-            const activeEntrance = document.getElementById(`entrance${num}`);
-
-            if (activeEntrance) {
-                if (
-                    activeEntrance.classList.contains('active') &&
-                    activeEntrance.style.display === 'flex' &&
-                    activeEntrance.style.position === 'relative' &&
-                    activeEntrance.style.transform === '' &&
-                    activeEntrance.style.opacity === '' &&
-                    activeEntrance.style.pointerEvents === 'auto'
-                ) {
-                    return;
-                }
-                document.querySelectorAll('.entrance').forEach(el => {
-                    if (el !== activeEntrance) {
-                        el.classList.remove('active');
-                        el.style.display = 'none';
-                    }
-                });
-
-                activeEntrance.classList.add('active');
-                activeEntrance.style.display = 'flex';
-                activeEntrance.style.position = 'relative';
-                activeEntrance.style.transform = '';
-                activeEntrance.style.opacity = '';
-                activeEntrance.style.pointerEvents = 'auto';
+        document.querySelectorAll('.entrance').forEach(el => {
+            if (el === activeEntrance) {
+                el.classList.add('active');
+                el.style.display = 'flex';
+            } else {
+                el.classList.remove('active');
+                el.style.display = 'none';
             }
-        }
+        });
     } else {
         document.querySelectorAll('.entrance').forEach(el => {
             el.classList.add('active');
             el.style.display = 'flex';
-            el.style.position = 'relative';
-            el.style.transform = '';
-            el.style.opacity = '';
-            el.style.pointerEvents = 'auto';
         });
     }
 }
