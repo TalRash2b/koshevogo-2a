@@ -217,7 +217,7 @@ header h1 { font-size: 1.8rem; color: var(--accent); }
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 4px;
+    width: 6px;
     background: transparent;
     pointer-events: none;
     transition: background 0.2s ease;
