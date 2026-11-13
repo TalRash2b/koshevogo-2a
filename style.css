@@ -440,7 +440,12 @@ header h1 { font-size: 1.8rem; color: var(--accent); }
     color: var(--text-muted);
 }
 .tszh-legend span { display: flex; align-items: center; gap: 6px; }
-.legend-dot { display: inline-block; width: 4px; height: 14px; border-radius: 2px; }
+.legend-dot { 
+    display: inline-block; 
+    width: 6px; 
+    height: 16px; 
+    border-radius: 0; /* Убираем скругление, чтобы это была четкая полоска */
+}
 .legend-dot.vote-for { background: #22c55e; }
 .legend-dot.vote-against { background: #ef4444; }
 .legend-dot.vote-abstain { background: #eab308; }
