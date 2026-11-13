@@ -23,7 +23,6 @@ async function loadDataFromGoogleSheets() {
         renderBuilding();
         hideLoadingStatus();
         updateHeader();
-        // updateTSZHStats();        // Включим на следующем шаге
         
         applyMobileFix();
         setTimeout(updateTabSlider, 100);
@@ -44,9 +43,10 @@ async function fetchSheet(sheetName) {
     return JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
 }
 
-// 2. Парсер данных
+// 2. Парсер данных жильцов
 function parseData(jsonData) {
     houseDatabase = {};
+    if (!jsonData || !jsonData.table || !jsonData.table.rows) return;
     
     const rows = jsonData.table.rows;
     
@@ -63,7 +63,7 @@ function parseData(jsonData) {
         if (!name || !aptRaw) continue;
         
         const aptNum = parseInt(aptRaw);
-        if (isNaN(aptNum) || aptNum < 1 || aptNum > 88) continue;
+        if (isNaN(aptNum) || aptNum < 1 || aptNum > TOTAL_APTS) continue;
         
         if (!houseDatabase[aptNum]) {
             houseDatabase[aptNum] = [];
@@ -121,12 +121,22 @@ function parseVotes(jsonData) {
         };
         
         // Берем последний ответ по квартире (защита от дублей)
+        // Заменяем точки на дефисы и убираем время, чтобы JS смог распарсить дату
+        const safeTime = vote.time.replace(/\./g, '-').replace(' ', 'T');
+        const parsedTime = new Date(safeTime).getTime() || 0;
+        
         const prev = votesDatabase[aptNum];
-        if (!prev || new Date(vote.time).getTime() >= new Date(prev.time).getTime()) {
+        let prevParsedTime = 0;
+        if (prev) {
+            const safePrevTime = prev.time.replace(/\./g, '-').replace(' ', 'T');
+            prevParsedTime = new Date(safePrevTime).getTime() || 0;
+        }
+        
+        if (!prev || parsedTime >= prevParsedTime) {
             votesDatabase[aptNum] = vote;
         }
     }
-    console.log('Загруженные голоса:', votesDatabase); // Для проверки в консоли
+    console.log('Загруженные голоса:', votesDatabase); 
 }
 
 // Преобразование текста из таблицы в логические значения
@@ -200,7 +210,6 @@ function updateTabStats() {
     if (tabStats1) tabStats1.textContent = `${stats.filled1}/${stats.total1} (${stats.percent1}%)`;
     if (tabStats2) tabStats2.textContent = `${stats.filled2}/${stats.total2} (${stats.percent2}%)`;
     
-    // Обновляем ползунок под активным табом
     updateTabSlider();
 }
 
@@ -293,8 +302,12 @@ function buildEntrance(containerId, startApt, entranceNum) {
                 <div class="apt-count">${peopleIcons}</div>
             `;
             
-            // Не забываем клик!
+            // Клик!
             aptDiv.addEventListener('click', () => showInfo(aptNum, floor, residents));
+            
+            // ВАЖНО: Добавляем окно в сетку!
+            aptGrid.appendChild(aptDiv);
+        }
         
         floorRow.appendChild(aptGrid);
         container.appendChild(floorRow);
@@ -351,7 +364,7 @@ function showInfo(aptNum, floor, residents) {
         });
     }
 
-        // Блок голосования по ТСЖ
+    // Блок голосования по ТСЖ
     const vote = votesDatabase[aptNum];
     const voteBlock = document.createElement('div');
     voteBlock.className = 'vote-block';
@@ -430,11 +443,8 @@ function closeInfo() {
     panel.classList.remove('active');
     overlay.classList.remove('active');
 
-    // Эти два нужны: их выставляет initSwipeToClose при перетаскивании шторки
     panel.style.bottom = '';
     panel.style.opacity = '';
-
-    // Эти — на случай, если свайп оставил за собой хвосты
     panel.style.transition = '';
     panel.style.willChange = '';
 
@@ -459,13 +469,11 @@ function switchEntrance(num, direction) {
         direction = num > currentNum ? 'left' : 'right';
     }
     
-    // Анимация ухода
     currentEntrance.classList.remove('active');
     currentEntrance.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease';
     currentEntrance.style.transform = direction === 'left' ? 'translateX(-100%)' : 'translateX(100%)';
     currentEntrance.style.opacity = '0';
     
-    // Подготовка следующего
     nextEntrance.style.display = 'flex';
     nextEntrance.style.position = 'absolute';
     nextEntrance.style.top = '0';
@@ -476,22 +484,18 @@ function switchEntrance(num, direction) {
     nextEntrance.style.pointerEvents = 'none';
     nextEntrance.style.transition = 'none';
     
-    // Форсируем reflow
     void nextEntrance.offsetHeight;
     
-    // Анимация появления
     requestAnimationFrame(() => {
         nextEntrance.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease';
         nextEntrance.style.transform = 'translateX(0)';
         nextEntrance.style.opacity = '1';
     });
     
-    // Обновляем табы
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.getElementById(`tab${num}`).classList.add('active');
     updateTabSlider();
     
-    // Завершаем анимацию
     setTimeout(() => {
         nextEntrance.classList.add('active');
         nextEntrance.style.position = 'relative';
@@ -529,10 +533,7 @@ function applyMobileFix() {
             }
         });
 
-        // Даём контейнеру высоту активного подъезда,
-        // иначе position:absolute схлопнется в 0
         if (buildingContainer && activeEntrance) {
-            // снимаем фиксированную высоту, чтобы измерить
             buildingContainer.style.minHeight = '';
             const h = activeEntrance.scrollHeight;
             if (h > 0) {
@@ -576,19 +577,6 @@ window.addEventListener('resize', () => {
     updateTabSlider();
 });
 
-// 13. Убираем "Интерактивная модель дома"
-function removeSubtitle() {
-    const header = document.querySelector('header');
-    if (header) {
-        const p = header.querySelector('p');
-        if (p && !p.textContent.includes('Заполнено')) {
-            if (p.textContent === 'Интерактивная модель дома' || p.textContent === '') {
-                p.remove();
-            }
-        }
-    }
-}
-
 // 14. UI-функции
 function showLoadingStatus(text) {
     let el = document.getElementById('loadingStatus');
@@ -630,12 +618,10 @@ style.textContent = `
 document.head.appendChild(style);
 
 // ===== ПРОСТОЙ СВАЙП ДЛЯ ПЕРЕКЛЮЧЕНИЯ ПОДЪЕЗДОВ =====
-// Никакого перетаскивания. Только детект свайпа -> вызов switchEntrance().
-// Плавность обеспечивает CSS transition у .entrance.
 (function initSimpleSwipe() {
-    const SWIPE_THRESHOLD = 50;   // минимальное смещение по X для срабатывания (px)
-    const MAX_TIME = 600;         // свайп должен уложиться в это время (мс)
-    const MAX_VERTICAL = 60;      // если палец ушёл по Y больше — это скролл, не свайп
+    const SWIPE_THRESHOLD = 50;   
+    const MAX_TIME = 600;         
+    const MAX_VERTICAL = 60;      
 
     let startX = 0;
     let startY = 0;
@@ -666,27 +652,19 @@ document.head.appendChild(style);
         const diffY = t.clientY - startY;
         const duration = Date.now() - startTime;
 
-        // Слишком долго — это не свайп
         if (duration > MAX_TIME) return;
-
-        // Ушёл по вертикали — это скролл, не свайп
         if (Math.abs(diffY) > MAX_VERTICAL) return;
-
-        // Смещение по X недостаточное
         if (Math.abs(diffX) < SWIPE_THRESHOLD) return;
 
         const currentEntrance = document.querySelector('.entrance.active');
         if (!currentEntrance) return;
         const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
 
-        // Свайп влево (diffX < 0) -> следующий подъезд
-        // Свайп вправо (diffX > 0) -> предыдущий подъезд
         if (diffX < 0 && currentNum === 1) {
             switchEntrance(2, 'left');
         } else if (diffX > 0 && currentNum === 2) {
             switchEntrance(1, 'right');
         }
-        // Если свайп в «неправильную» сторону (1 вправо или 2 влево) — ничего не делаем
     }
 
     document.addEventListener('touchstart', onTouchStart, { passive: true });
@@ -707,11 +685,7 @@ document.head.appendChild(style);
     
 function onStart(e) {
     if (!isPanelActive()) return;
-
-    // Не запускаем свайп, если нажали на интерактивный элемент
-    if (e.target.closest('.close-btn, a, button')) {
-        return;
-    }
+    if (e.target.closest('.close-btn, a, button')) return;
 
     const touch = e.touches ? e.touches[0] : e;
     startY = touch.clientY;
@@ -765,17 +739,14 @@ function onStart(e) {
         }
     }
     
-    // Тач-события
     panel.addEventListener('touchstart', onStart, { passive: false });
     document.addEventListener('touchmove', onMove, { passive: false });
     document.addEventListener('touchend', onEnd, { passive: false });
     
-    // Мышь (для ПК)
     panel.addEventListener('mousedown', onStart);
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onEnd);
     
-    // Следим за состоянием шторки
     const observer = new MutationObserver(() => {
         if (!isPanelActive()) {
             document.body.style.overflow = '';
@@ -788,7 +759,6 @@ function onStart(e) {
     observer.observe(panel, { attributes: true, attributeFilter: ['class'] });
 })();
 
-// Привязываем обработчики
 document.getElementById('closeBtn').addEventListener('click', closeInfo);
 document.getElementById('overlay').addEventListener('click', closeInfo);
 
