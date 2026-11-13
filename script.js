@@ -378,6 +378,7 @@ function switchEntrance(num, direction) {
 // 10. Мобильный фикс
 function applyMobileFix() {
     const isMobile = window.innerWidth < 768;
+    const buildingContainer = document.querySelector('.building-container');
 
     if (isMobile) {
         const activeTab = document.querySelector('.tab-btn.active');
@@ -393,11 +394,25 @@ function applyMobileFix() {
                 el.style.display = 'none';
             }
         });
+
+        // Даём контейнеру высоту активного подъезда,
+        // иначе position:absolute схлопнется в 0
+        if (buildingContainer && activeEntrance) {
+            // снимаем фиксированную высоту, чтобы измерить
+            buildingContainer.style.minHeight = '';
+            const h = activeEntrance.scrollHeight;
+            if (h > 0) {
+                buildingContainer.style.minHeight = h + 'px';
+            }
+        }
     } else {
         document.querySelectorAll('.entrance').forEach(el => {
             el.classList.add('active');
             el.style.display = 'flex';
         });
+        if (buildingContainer) {
+            buildingContainer.style.minHeight = '';
+        }
     }
 }
 
