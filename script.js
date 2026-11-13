@@ -136,14 +136,13 @@ function getEntranceStats() {
 function updateTabStats() {
     const stats = getEntranceStats();
     
-    const tab1 = document.getElementById('tab1');
-    const tab2 = document.getElementById('tab2');
+    const tabStats1 = document.getElementById('tabStats1');
+    const tabStats2 = document.getElementById('tabStats2');
     
-    // Обновляем текст внутри табов
-    if (tab1) tab1.innerHTML = `1 Подъезд <small style="opacity:0.7; font-size:0.8em;">(${stats.filled1}/${stats.total1})</small>`;
-    if (tab2) tab2.innerHTML = `2 Подъезд <small style="opacity:0.7; font-size:0.8em;">(${stats.filled2}/${stats.total2})</small>`;
+    if (tabStats1) tabStats1.textContent = `${stats.filled1}/${stats.total1} (${stats.percent1}%)`;
+    if (tabStats2) tabStats2.textContent = `${stats.filled2}/${stats.total2} (${stats.percent2}%)`;
     
-    // Обновляем ползунок под активным табом, так как ширина кнопок могла измениться
+    // Обновляем ползунок под активным табом
     updateTabSlider();
 }
 
@@ -231,8 +230,9 @@ function buildEntrance(containerId, startApt, entranceNum) {
 
 // 7. Информационная панель
 function showInfo(aptNum, floor, residents) {
+    const entranceNum = aptNum <= 44 ? 1 : 2;
     document.getElementById('panelAptNum').textContent = `Квартира №${aptNum}`;
-    document.getElementById('panelAptMeta').textContent = `Этаж ${floor}`;
+    document.getElementById('panelAptMeta').textContent = `Этаж ${floor}, Подъезд ${entranceNum}`;
     
     const container = document.getElementById('residentsContainer');
     container.innerHTML = '';
@@ -292,24 +292,20 @@ function closeInfo() {
     panel.classList.remove('active');
     overlay.classList.remove('active');
 
+    // Эти два нужны: их выставляет initSwipeToClose при перетаскивании шторки
     panel.style.bottom = '';
     panel.style.opacity = '';
+
+    // Эти — на случай, если свайп оставил за собой хвосты
     panel.style.transition = '';
     panel.style.willChange = '';
-    panel.style.transform = '';
-    panel.style.display = '';
-    panel.style.position = '';
-    panel.style.top = '';
-    panel.style.left = '';
-    panel.style.right = '';
-    panel.style.width = '';
-    panel.style.height = '';
 
     overlay.style.display = 'none';
     document.body.style.overflow = '';
+
     setTimeout(() => {
-    applyMobileFix();
-}, 50);
+        applyMobileFix();
+    }, 50);
 }
 
 // 9. Переключение подъездов
@@ -659,5 +655,4 @@ document.getElementById('closeBtn').addEventListener('click', closeInfo);
 document.getElementById('overlay').addEventListener('click', closeInfo);
 
 // 16. Запуск!
-removeSubtitle();
 loadDataFromGoogleSheets();
