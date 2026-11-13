@@ -1,22 +1,25 @@
 // === НАСТРОЙКА: ID вашей Google Таблицы ===
 const SPREADSHEET_ID = '15O63umHMD-ghB3CQ7iPPKKESqkEFLzzy3BgauZQOzMs';
+const SHEET_RESIDENTS = '';        // Пустая строка = первый лист (жильцы)
+const SHEET_TSZH = 'TSZH';         // Наш новый лист с голосами
+const TOTAL_APTS = 88;
 
 let houseDatabase = {};
+let votesDatabase = {};            // Сюда складываем голоса
 
 // 1. Загрузка данных
 async function loadDataFromGoogleSheets() {
-    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
-    
     showLoadingStatus('Загрузка данных...');
     
     try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Ошибка сети');
+        // Загружаем оба листа параллельно для скорости
+        const [residentsJson, votesJson] = await Promise.all([
+            fetchSheet(SHEET_RESIDENTS),
+            fetchSheet(SHEET_TSZH),
+        ]);
         
-        const text = await response.text();
-        const jsonData = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
-        
-        parseData(jsonData);
+        parseData(residentsJson);
+        parseVotes(votesJson);
         renderBuilding();
         hideLoadingStatus();
         updateHeader();
@@ -30,9 +33,19 @@ async function loadDataFromGoogleSheets() {
     }
 }
 
-// 2. Парсер данных
+async function fetchSheet(sheetName) {
+    const base = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
+    const url = sheetName ? `${base}&sheet=${encodeURIComponent(sheetName)}&_=${Date.now()}` : base;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Ошибка сети');
+    const text = await response.text();
+    return JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
+}
+
+// 2. Парсер жильцов
 function parseData(jsonData) {
     houseDatabase = {};
+    if (!jsonData || !jsonData.table || !jsonData.table.rows) return;
     
     const rows = jsonData.table.rows;
     
@@ -41,7 +54,6 @@ function parseData(jsonData) {
         if (!row || !row.c) continue;
         
         const cells = row.c;
-        
         const name = cells[1] ? String(cells[1].v || cells[1].f || '').trim() : '';
         const aptRaw = cells[2] ? String(cells[2].v || cells[2].f || '').trim() : '';
         const phoneRaw = cells[3] ? String(cells[3].v || cells[3].f || '').trim() : '';
@@ -49,14 +61,11 @@ function parseData(jsonData) {
         if (!name || !aptRaw) continue;
         
         const aptNum = parseInt(aptRaw);
-        if (isNaN(aptNum) || aptNum < 1 || aptNum > 88) continue;
+        if (isNaN(aptNum) || aptNum < 1 || aptNum > TOTAL_APTS) continue;
         
-        if (!houseDatabase[aptNum]) {
-            houseDatabase[aptNum] = [];
-        }
+        if (!houseDatabase[aptNum]) houseDatabase[aptNum] = [];
         
         const names = name.split(',').map(n => n.trim()).filter(n => n);
-        
         let phones = [];
         if (phoneRaw) {
             phones = phoneRaw.split(/[,;\s]+/).map(p => p.trim()).filter(p => p.length > 3);
@@ -64,61 +73,97 @@ function parseData(jsonData) {
         }
         
         if (names.length === 1 && phones.length > 1) {
-            houseDatabase[aptNum].push({
-                fio: names[0],
-                phones: phones
-            });
+            houseDatabase[aptNum].push({ fio: names[0], phones: phones });
         } else {
             names.forEach((n, index) => {
                 const phone = phones[index] || '';
-                houseDatabase[aptNum].push({
-                    fio: n,
-                    phones: phone ? [phone] : []
-                });
+                houseDatabase[aptNum].push({ fio: n, phones: phone ? [phone] : [] });
             });
         }
     }
 }
 
+// 2.5. Парсер голосов по ТСЖ
+function parseVotes(jsonData) {
+    votesDatabase = {};
+    if (!jsonData || !jsonData.table || !jsonData.table.rows) return;
+    
+    const rows = jsonData.table.rows;
+    
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || !row.c) continue;
+        
+        const timeRaw = row.c[0] ? String(row.c[0].f || row.c[0].v || '').trim() : '';
+        const aptRaw  = row.c[1] ? String(row.c[1].v || '').trim() : '';
+        const forRaw  = row.c[2] ? String(row.c[2].v || '').trim() : '';
+        const attRaw  = row.c[3] ? String(row.c[3].v || '').trim() : '';
+        
+        const aptNum = parseInt(aptRaw);
+        if (isNaN(aptNum) || aptNum < 1 || aptNum > TOTAL_APTS) continue;
+        
+        const vote = {
+            forTSZH: parseVoteAnswer(forRaw),
+            attend:  parseVoteAnswer(attRaw),
+            time:    timeRaw,
+        };
+        
+        // Берем последний ответ по квартире (защита от дублей)
+        const safeTime = vote.time.replace(/\./g, '-').replace(' ', 'T');
+        const parsedTime = new Date(safeTime).getTime() || 0;
+        
+        const prev = votesDatabase[aptNum];
+        let prevParsedTime = 0;
+        if (prev) {
+            const safePrevTime = prev.time.replace(/\./g, '-').replace(' ', 'T');
+            prevParsedTime = new Date(safePrevTime).getTime() || 0;
+        }
+        
+        if (!prev || parsedTime >= prevParsedTime) {
+            votesDatabase[aptNum] = vote;
+        }
+    }
+    console.log('Загруженные голоса:', votesDatabase); 
+}
+
+function parseVoteAnswer(raw) {
+    const s = String(raw).trim().toLowerCase();
+    if (/^(да|yes|1|\+)$/.test(s)) return true;
+    if (/^(нет|no|0|-)$/.test(s)) return false;
+    if (/^(воздержался|пока не знаю|не знаю|maybe)$/.test(s)) return 'abstain';
+    return null;
+}
+
 // 3. Форматирование телефона
 function formatPhone(phone) {
     let cleaned = phone.replace(/[^0-9+]/g, '');
-    
     if (!cleaned.startsWith('+')) {
         if (cleaned.length === 9) cleaned = '+375' + cleaned;
         else if (cleaned.length === 10 && cleaned.startsWith('8')) cleaned = '+375' + cleaned.slice(1);
         else if (cleaned.length === 11 && cleaned.startsWith('80')) cleaned = '+375' + cleaned.slice(2);
         else if (cleaned.length === 12 && cleaned.startsWith('375')) cleaned = '+' + cleaned;
     }
-    
     return cleaned;
 }
 
 // 4. Обновление прогресс-бара
 function updateHeader() {
     const filled = Object.keys(houseDatabase).length;
-    const total = 88;
-    const percent = Math.round((filled / total) * 100);
+    const percent = Math.round((filled / TOTAL_APTS) * 100);
     
     const label = document.getElementById('progressLabel');
-    if (label) {
-        label.textContent = `Заполнено ${filled} из ${total} квартир (${percent}%)`;
-    }
+    if (label) label.textContent = `Заполнено ${filled} из ${TOTAL_APTS} квартир (${percent}%)`;
     
     const fill = document.getElementById('progressFill');
-    if (fill) {
-        fill.style.width = `${percent}%`;
-    }
+    if (fill) fill.style.width = `${percent}%`;
+    
     updateTabStats();
 }
 
 // 4.5. Подсчёт статистики по подъездам
 function getEntranceStats() {
-    const total1 = 44;
-    const total2 = 44;
-    
-    let filled1 = 0;
-    let filled2 = 0;
+    const total1 = 44, total2 = 44;
+    let filled1 = 0, filled2 = 0;
     
     for (const aptNum in houseDatabase) {
         const num = parseInt(aptNum);
@@ -126,16 +171,15 @@ function getEntranceStats() {
         else if (num >= 45 && num <= 88) filled2++;
     }
     
-    const percent1 = Math.round((filled1 / total1) * 100);
-    const percent2 = Math.round((filled2 / total2) * 100);
-    
-    return { filled1, total1, percent1, filled2, total2, percent2 };
+    return { 
+        filled1, total1, percent1: Math.round((filled1 / total1) * 100), 
+        filled2, total2, percent2: Math.round((filled2 / total2) * 100) 
+    };
 }
 
 // 4.6. Обновление статистики в табах
 function updateTabStats() {
     const stats = getEntranceStats();
-    
     const tabStats1 = document.getElementById('tabStats1');
     const tabStats2 = document.getElementById('tabStats2');
     
@@ -143,6 +187,37 @@ function updateTabStats() {
     if (tabStats2) tabStats2.textContent = `${stats.filled2}/${stats.total2} (${stats.percent2}%)`;
     
     updateTabSlider();
+}
+
+// 4.7. Статистика по ТСЖ (глобальная)
+function calculateTSZHStats() {
+    let forTSZH = 0, against = 0, abstain = 0, attend = 0, forAndAttend = 0;
+    
+    for (const apt in votesDatabase) {
+        const v = votesDatabase[apt];
+        if (v.forTSZH === true) forTSZH++;
+        else if (v.forTSZH === false) against++;
+        else if (v.forTSZH === 'abstain') abstain++;
+        
+        if (v.attend === true) {
+            attend++;
+            if (v.forTSZH === true) forAndAttend++;
+        }
+    }
+    
+    const quorumNeeded = Math.ceil(TOTAL_APTS * 2 / 3);
+    const decisionNeeded = attend > 0 ? Math.ceil(attend * 2 / 3) : 0;
+    
+    return {
+        forTSZH, against, abstain, attend, forAndAttend,
+        notVoted: TOTAL_APTS - (forTSZH + against + abstain),
+        notAttend: TOTAL_APTS - attend,
+        quorumNeeded, decisionNeeded,
+        hasQuorum: attend >= quorumNeeded,
+        hasDecision: attend > 0 && forAndAttend >= decisionNeeded,
+        quorumPercent: Math.round(attend / TOTAL_APTS * 100),
+        decisionPercent: attend > 0 ? Math.round(forAndAttend / attend * 100) : 0,
+    };
 }
 
 // 5. Состояние ошибки
@@ -155,10 +230,7 @@ function showErrorState() {
     if (header) {
         header.textContent = 'Данные не загружены. Попробуйте обновить страницу.';
         header.style.color = '#ef4444';
-        header.style.fontSize = '1.2rem';
-        header.style.fontWeight = 'bold';
     }
-    
     showNotification('❌ Не удалось загрузить данные', 'error');
 }
 
@@ -174,18 +246,12 @@ function buildEntrance(containerId, startApt, entranceNum) {
     if (!container) return;
     
     const stats = getEntranceStats();
-    let statsText = '';
-    if (entranceNum === 1) {
-        statsText = `${stats.filled1} из ${stats.total1} (${stats.percent1}%)`;
-    } else {
-        statsText = `${stats.filled2} из ${stats.total2} (${stats.percent2}%)`;
-    }
+    const statsText = entranceNum === 1 ? `${stats.filled1} из ${stats.total1} (${stats.percent1}%)` : `${stats.filled2} из ${stats.total2} (${stats.percent2}%)`;
     
     const isMobile = window.innerWidth < 768;
     container.innerHTML = `
         <div class="entrance-title" style="${isMobile ? 'display: none;' : ''}">
-            ${entranceNum} Подъезд
-            <span class="entrance-stats">${statsText}</span>
+            ${entranceNum} Подъезд <span class="entrance-stats">${statsText}</span>
         </div>
     `;
     
@@ -209,16 +275,32 @@ function buildEntrance(containerId, startApt, entranceNum) {
             const empty = residents.length === 0;
             
             const aptDiv = document.createElement('div');
-            aptDiv.className = `apartment ${empty ? 'empty' : ''}`;
+            const vote = votesDatabase[aptNum];
             
+            let aptClass = 'apartment';
+            if (empty) aptClass += ' empty';
+            
+            // Полоски
+            if (vote) {
+                if (vote.forTSZH === true) aptClass += ' vote-for';
+                else if (vote.forTSZH === false) aptClass += ' vote-against';
+                else if (vote.forTSZH === 'abstain') aptClass += ' vote-abstain';
+                
+                if (vote.attend === true) aptClass += ' attend-yes';
+            }
+            
+            aptDiv.className = aptClass;
+            
+            // Человечки
             const peopleIcons = empty ? '' : `<i class="fa-regular fa-user"></i>`.repeat(residents.length);
             
             aptDiv.innerHTML = `
                 <div class="apt-num">${aptNum}</div>
                 <div class="apt-count">${peopleIcons}</div>
             `;
+            
             aptDiv.addEventListener('click', () => showInfo(aptNum, floor, residents));
-            aptGrid.appendChild(aptDiv);
+            aptGrid.appendChild(aptDiv); // Возвращено на место!
         }
         
         floorRow.appendChild(aptGrid);
@@ -229,8 +311,9 @@ function buildEntrance(containerId, startApt, entranceNum) {
 
 // 7. Информационная панель
 function showInfo(aptNum, floor, residents) {
+    const entranceNum = aptNum <= 44 ? 1 : 2;
     document.getElementById('panelAptNum').textContent = `Квартира №${aptNum}`;
-    document.getElementById('panelAptMeta').textContent = `Этаж ${floor}`;
+    document.getElementById('panelAptMeta').textContent = `Этаж ${floor}, Подъезд ${entranceNum}`;
     
     const container = document.getElementById('residentsContainer');
     container.innerHTML = '';
@@ -270,10 +353,39 @@ function showInfo(aptNum, floor, residents) {
                 noPhone.textContent = '🚫 Нет телефона';
                 card.appendChild(noPhone);
             }
-            
             container.appendChild(card);
         });
     }
+
+    // Блок голосования
+    const vote = votesDatabase[aptNum];
+    const voteBlock = document.createElement('div');
+    voteBlock.className = 'vote-block';
+    
+    if (vote) {
+        let pText, pIcon, pClass;
+        if (vote.forTSZH === true) { pText = 'ЗА создание ТСЖ'; pIcon = '✅'; pClass = 'vote-for'; }
+        else if (vote.forTSZH === false) { pText = 'ПРОТИВ создания ТСЖ'; pIcon = '❌'; pClass = 'vote-against'; }
+        else if (vote.forTSZH === 'abstain') { pText = 'ВОЗДЕРЖАЛСЯ'; pIcon = '🟡'; pClass = 'vote-abstain'; }
+        else { pText = 'Не голосовал по ТСЖ'; pIcon = '⚪'; pClass = 'vote-none'; }
+        
+        let aText, aIcon, aClass;
+        if (vote.attend === true) { aText = 'УЧАСТВУЕТ в голосовании (кворум)'; aIcon = '✅'; aClass = 'attend-yes'; }
+        else if (vote.attend === false) { aText = 'НЕ УЧАСТВУЕТ в голосовании'; aIcon = '⚪'; aClass = 'attend-no'; }
+        else { aText = 'Явка не подтверждена'; aIcon = '⚪'; aClass = 'attend-none'; }
+        
+        voteBlock.innerHTML = `
+            <div class="vote-title">🗳️ Голосование по ТСЖ</div>
+            <div class="vote-line ${pClass}"><span class="vote-icon">${pIcon}</span><span>${pText}</span></div>
+            <div class="vote-line ${aClass}"><span class="vote-icon">${aIcon}</span><span>${aText}</span></div>
+        `;
+    } else {
+        voteBlock.innerHTML = `
+            <div class="vote-title">🗳️ Голосование по ТСЖ</div>
+            <div class="vote-line vote-none"><span class="vote-icon">⚪</span><span>Жильцы не голосовали</span></div>
+        `;
+    }
+    container.appendChild(voteBlock);
     
     document.getElementById('overlay').style.display = 'block';
     setTimeout(() => {
@@ -286,35 +398,21 @@ function showInfo(aptNum, floor, residents) {
 function closeInfo() {
     const panel = document.getElementById('infoPanel');
     const overlay = document.getElementById('overlay');
-
     panel.classList.remove('active');
     overlay.classList.remove('active');
-
     panel.style.bottom = '';
     panel.style.opacity = '';
     panel.style.transition = '';
     panel.style.willChange = '';
-    panel.style.transform = '';
-    panel.style.display = '';
-    panel.style.position = '';
-    panel.style.top = '';
-    panel.style.left = '';
-    panel.style.right = '';
-    panel.style.width = '';
-    panel.style.height = '';
-
     overlay.style.display = 'none';
     document.body.style.overflow = '';
-    setTimeout(() => {
-        applyMobileFix();
-    }, 50);
+    setTimeout(() => applyMobileFix(), 50);
 }
 
 // 9. Переключение подъездов
 function switchEntrance(num, direction) {
     const currentEntrance = document.querySelector('.entrance.active');
     const nextEntrance = document.getElementById(`entrance${num}`);
-    
     if (currentEntrance === nextEntrance) return;
     if (!currentEntrance || !nextEntrance) return;
     
@@ -390,18 +488,14 @@ function applyMobileFix() {
         if (buildingContainer && activeEntrance) {
             buildingContainer.style.minHeight = '';
             const h = activeEntrance.scrollHeight;
-            if (h > 0) {
-                buildingContainer.style.minHeight = h + 'px';
-            }
+            if (h > 0) buildingContainer.style.minHeight = h + 'px';
         }
     } else {
         document.querySelectorAll('.entrance').forEach(el => {
             el.classList.add('active');
             el.style.display = 'flex';
         });
-        if (buildingContainer) {
-            buildingContainer.style.minHeight = '';
-        }
+        if (buildingContainer) buildingContainer.style.minHeight = '';
     }
 }
 
@@ -410,39 +504,18 @@ function updateTabSlider() {
     const activeTab = document.querySelector('.tab-btn.active');
     const slider = document.getElementById('tabSlider');
     const container = document.getElementById('tabsContainer');
-    
     if (!activeTab || !slider || !container) return;
     
     requestAnimationFrame(() => {
         const containerRect = container.getBoundingClientRect();
         const tabRect = activeTab.getBoundingClientRect();
-        
-        const left = tabRect.left - containerRect.left + 2;
-        const width = tabRect.width - 4;
-        
-        slider.style.left = left + 'px';
-        slider.style.width = width + 'px';
+        slider.style.left = (tabRect.left - containerRect.left + 2) + 'px';
+        slider.style.width = (tabRect.width - 4) + 'px';
     });
 }
 
 // 12. Ресайз
-window.addEventListener('resize', () => {
-    applyMobileFix();
-    updateTabSlider();
-});
-
-// 13. Убираем "Интерактивная модель дома"
-function removeSubtitle() {
-    const header = document.querySelector('header');
-    if (header) {
-        const p = header.querySelector('p');
-        if (p && !p.textContent.includes('Заполнено')) {
-            if (p.textContent === 'Интерактивная модель дома' || p.textContent === '') {
-                p.remove();
-            }
-        }
-    }
-}
+window.addEventListener('resize', () => { applyMobileFix(); updateTabSlider(); });
 
 // 14. UI-функции
 function showLoadingStatus(text) {
@@ -468,95 +541,61 @@ function showNotification(text, type) {
     el.style.cssText = `position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#f8fafc;padding:12px 24px;border-radius:8px;z-index:1000;border-left:4px solid ${colors[type] || '#38bdf8'};animation:slideUp 0.3s ease;max-width:90%;text-align:center;`;
     el.textContent = text;
     document.body.appendChild(el);
-    setTimeout(() => {
-        el.style.opacity = '0';
-        el.style.transition = 'opacity 0.3s';
-        setTimeout(() => el.remove(), 300);
-    }, 3000);
+    setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
 }
 
 const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideUp {
-        from { opacity:0; transform:translateX(-50%) translateY(20px); }
-        to { opacity:1; transform:translateX(-50%) translateY(0); }
-    }
-`;
+style.textContent = `@keyframes slideUp { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }`;
 document.head.appendChild(style);
 
-// ===== ПРОСТОЙ СВАЙП ДЛЯ ПЕРЕКЛЮЧЕНИЯ ПОДЪЕЗДОВ =====
+// ===== СВАЙП ПОДЪЕЗДОВ =====
 (function initSimpleSwipe() {
-    const SWIPE_THRESHOLD = 50;   
-    const MAX_TIME = 600;         
-    const MAX_VERTICAL = 60;      
+    const THRESHOLD = 50, MAX_TIME = 600, MAX_VERT = 60;
+    let startX = 0, startY = 0, startTime = 0, tracking = false;
 
-    let startX = 0;
-    let startY = 0;
-    let startTime = 0;
-    let tracking = false;
-
-    function onTouchStart(e) {
+    document.addEventListener('touchstart', function(e) {
         if (window.innerWidth >= 768) return;
         if (e.touches.length !== 1) return;
         if (e.target.closest('#infoPanel, #overlay, .close-btn, a, button')) return;
-
         const t = e.touches[0];
-        startX = t.clientX;
-        startY = t.clientY;
-        startTime = Date.now();
-        tracking = true;
-    }
+        startX = t.clientX; startY = t.clientY; startTime = Date.now(); tracking = true;
+    }, { passive: true });
 
-    function onTouchEnd(e) {
+    document.addEventListener('touchend', function(e) {
         if (!tracking) return;
         tracking = false;
-
         if (window.innerWidth >= 768) return;
         if (!e.changedTouches.length) return;
-
         const t = e.changedTouches[0];
         const diffX = t.clientX - startX;
         const diffY = t.clientY - startY;
         const duration = Date.now() - startTime;
 
         if (duration > MAX_TIME) return;
-        if (Math.abs(diffY) > MAX_VERTICAL) return;
-        if (Math.abs(diffX) < SWIPE_THRESHOLD) return;
+        if (Math.abs(diffY) > MAX_VERT) return;
+        if (Math.abs(diffX) < THRESHOLD) return;
 
         const currentEntrance = document.querySelector('.entrance.active');
         if (!currentEntrance) return;
         const currentNum = currentEntrance.id === 'entrance1' ? 1 : 2;
 
-        if (diffX < 0 && currentNum === 1) {
-            switchEntrance(2, 'left');
-        } else if (diffX > 0 && currentNum === 2) {
-            switchEntrance(1, 'right');
-        }
-    }
-
-    document.addEventListener('touchstart', onTouchStart, { passive: true });
-    document.addEventListener('touchend', onTouchEnd, { passive: true });
+        if (diffX < 0 && currentNum === 1) switchEntrance(2, 'left');
+        else if (diffX > 0 && currentNum === 2) switchEntrance(1, 'right');
+    }, { passive: true });
 })();
 
-// ===== СВАЙП ДЛЯ ЗАКРЫТИЯ ШТОРКИ =====
+// ===== СВАЙП ШТОРКИ =====
 (function initSwipeToClose() {
-    let startY = 0;
-    let currentY = 0;
-    let isDragging = false;
+    let startY = 0, currentY = 0, isDragging = false;
     const panel = document.getElementById('infoPanel');
     
-    function isPanelActive() {
-        return panel.classList.contains('active');
-    }
+    function isPanelActive() { return panel.classList.contains('active'); }
     
     function onStart(e) {
         if (!isPanelActive()) return;
         if (e.target.closest('.close-btn, a, button')) return;
-
         const touch = e.touches ? e.touches[0] : e;
-        startY = touch.clientY;
-        isDragging = true;
-
+        startY = touch.clientY; isDragging = true;
         panel.style.transition = 'none';
         e.preventDefault();
     }
@@ -567,59 +606,38 @@ document.head.appendChild(style);
         const touch = e.touches ? e.touches[0] : e;
         currentY = touch.clientY;
         const diff = currentY - startY;
-        
         if (diff > 0) {
             const progress = Math.min(diff / 300, 1);
             panel.style.bottom = `-${diff}px`;
             panel.style.opacity = 1 - progress * 0.5;
-            
             if (diff > 300) {
-                closeInfo();
-                isDragging = false;
-                document.body.style.overflow = '';
-                panel.style.willChange = '';
+                closeInfo(); isDragging = false; document.body.style.overflow = ''; panel.style.willChange = '';
             }
         }
     }
     
     function onEnd() {
-        if (!isDragging) {
-            if (!isPanelActive()) {
-                document.body.style.overflow = '';
-            }
-            return;
-        }
-        
-        isDragging = false;
-        document.body.style.overflow = '';
-        panel.style.willChange = '';
-        
+        if (!isDragging) { if (!isPanelActive()) document.body.style.overflow = ''; return; }
+        isDragging = false; document.body.style.overflow = ''; panel.style.willChange = '';
         const currentBottom = parseInt(panel.style.bottom) || 0;
-        
-        if (currentBottom < -150) {
-            closeInfo();
-        } else {
+        if (currentBottom < -150) closeInfo();
+        else {
             panel.style.transition = 'bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease';
-            panel.style.bottom = '0';
-            panel.style.opacity = '1';
+            panel.style.bottom = '0'; panel.style.opacity = '1';
         }
     }
     
     panel.addEventListener('touchstart', onStart, { passive: false });
     document.addEventListener('touchmove', onMove, { passive: false });
     document.addEventListener('touchend', onEnd, { passive: false });
-    
     panel.addEventListener('mousedown', onStart);
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onEnd);
     
     const observer = new MutationObserver(() => {
         if (!isPanelActive()) {
-            document.body.style.overflow = '';
-            panel.style.bottom = '';
-            panel.style.opacity = '';
-            panel.style.transition = '';
-            panel.style.willChange = '';
+            document.body.style.overflow = ''; panel.style.bottom = ''; panel.style.opacity = '';
+            panel.style.transition = ''; panel.style.willChange = '';
         }
     });
     observer.observe(panel, { attributes: true, attributeFilter: ['class'] });
@@ -629,5 +647,4 @@ document.getElementById('closeBtn').addEventListener('click', closeInfo);
 document.getElementById('overlay').addEventListener('click', closeInfo);
 
 // 16. Запуск!
-removeSubtitle();
 loadDataFromGoogleSheets();
