@@ -185,6 +185,10 @@ header p {
 }
 
 @media (max-width: 767px) {
+    .building-container {
+        min-height: 600px;
+    }
+
     .entrance-title {
         display: none !important;
     }
