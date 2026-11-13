@@ -516,7 +516,6 @@ function switchEntrance(num, direction) {
 // 10. Мобильный фикс
 function applyMobileFix() {
     const isMobile = window.innerWidth < 768;
-    const buildingContainer = document.querySelector('.building-container');
 
     if (isMobile) {
         const activeTab = document.querySelector('.tab-btn.active');
@@ -532,22 +531,11 @@ function applyMobileFix() {
                 el.style.display = 'none';
             }
         });
-
-        if (buildingContainer && activeEntrance) {
-            buildingContainer.style.minHeight = '';
-            const h = activeEntrance.scrollHeight;
-            if (h > 0) {
-                buildingContainer.style.minHeight = h + 'px';
-            }
-        }
     } else {
         document.querySelectorAll('.entrance').forEach(el => {
             el.classList.add('active');
             el.style.display = 'flex';
         });
-        if (buildingContainer) {
-            buildingContainer.style.minHeight = '';
-        }
     }
 }
 
