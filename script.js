@@ -287,11 +287,13 @@ function buildEntrance(containerId, startApt, entranceNum) {
             
             const peopleIcons = empty ? '' : `<i class="fa-regular fa-user"></i>`.repeat(residents.length);
             
+            // Возвращаем людей в окна
             aptDiv.innerHTML = `
                 <div class="apt-num">${aptNum}</div>
                 <div class="apt-count">${peopleIcons}</div>
             `;
             
+            // Возвращаем клик по квартире (шторка)
             aptDiv.addEventListener('click', () => showInfo(aptNum, floor, residents));
             aptGrid.appendChild(aptDiv);
         }
@@ -350,6 +352,70 @@ function showInfo(aptNum, floor, residents) {
             container.appendChild(card);
         });
     }
+
+        // Блок голосования по ТСЖ
+    const vote = votesDatabase[aptNum];
+    const voteBlock = document.createElement('div');
+    voteBlock.className = 'vote-block';
+    
+    if (vote) {
+        // Позиция по ТСЖ
+        let positionText, positionIcon, positionClass;
+        if (vote.forTSZH === true) {
+            positionText = 'ЗА создание ТСЖ';
+            positionIcon = '✅';
+            positionClass = 'vote-for';
+        } else if (vote.forTSZH === false) {
+            positionText = 'ПРОТИВ создания ТСЖ';
+            positionIcon = '❌';
+            positionClass = 'vote-against';
+        } else if (vote.forTSZH === 'abstain') {
+            positionText = 'ВОЗДЕРЖАЛСЯ';
+            positionIcon = '🟡';
+            positionClass = 'vote-abstain';
+        } else {
+            positionText = 'Не голосовал по ТСЖ';
+            positionIcon = '⚪';
+            positionClass = 'vote-none';
+        }
+        
+        // Явка
+        let attendText, attendIcon, attendClass;
+        if (vote.attend === true) {
+            attendText = 'УЧАСТВУЕТ в голосовании (кворум)';
+            attendIcon = '✅';
+            attendClass = 'attend-yes';
+        } else if (vote.attend === false) {
+            attendText = 'НЕ УЧАСТВУЕТ в голосовании';
+            attendIcon = '⚪';
+            attendClass = 'attend-no';
+        } else {
+            attendText = 'Явка не подтверждена';
+            attendIcon = '⚪';
+            attendClass = 'attend-none';
+        }
+        
+        voteBlock.innerHTML = `
+            <div class="vote-title">🗳️ Голосование по ТСЖ</div>
+            <div class="vote-line ${positionClass}">
+                <span class="vote-icon">${positionIcon}</span>
+                <span>${positionText}</span>
+            </div>
+            <div class="vote-line ${attendClass}">
+                <span class="vote-icon">${attendIcon}</span>
+                <span>${attendText}</span>
+            </div>
+        `;
+    } else {
+        voteBlock.innerHTML = `
+            <div class="vote-title">🗳️ Голосование по ТСЖ</div>
+            <div class="vote-line vote-none">
+                <span class="vote-icon">⚪</span>
+                <span>Жильцы не голосовали</span>
+            </div>
+        `;
+    }
+    container.appendChild(voteBlock);
     
     document.getElementById('overlay').style.display = 'block';
     setTimeout(() => {
