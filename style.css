@@ -530,3 +530,41 @@ header p {
     letter-spacing: 0.5px;
 }
 
+/* Блок голосования в шторке */
+.vote-block {
+    background: var(--card-bg);
+    padding: 14px;
+    border-radius: 8px;
+    border-left: 4px solid var(--accent);
+    margin-top: 10px;
+}
+
+.vote-title {
+    font-weight: bold;
+    font-size: 1rem;
+    color: var(--accent);
+    margin-bottom: 10px;
+}
+
+.vote-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.vote-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.vote-line.vote-for       { color: #22c55e; }
+.vote-line.vote-against   { color: #ef4444; }
+.vote-line.vote-abstain   { color: #eab308; }
+.vote-line.vote-none      { color: #94a3b8; }
+
+.vote-line.attend-yes     { color: #cbd5e1; }
+.vote-line.attend-no      { color: #94a3b8; }
+.vote-line.attend-none    { color: #64748b; }
