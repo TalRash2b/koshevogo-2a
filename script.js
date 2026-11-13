@@ -44,9 +44,9 @@ function parseData(jsonData) {
         const row = rows[i];
         if (!row || !row.c) continue;
         const cells = row.c;
-        const name = cells[1] ? String(cells[1].v || cells[1].f || '').trim() : '';
-        const aptRaw = cells[2] ? String(cells[2].v || cells[2].f || '').trim() : '';
-        const phoneRaw = cells[3] ? String(cells[3].v || cells[3].f || '').trim() : '';
+        const name = cells[0] ? String(cells[0].v || cells[0].f || '').trim() : '';
+        const aptRaw = cells[1] ? String(cells[1].v || cells[1].f || '').trim() : '';
+        const phoneRaw = cells[2] ? String(cells[2].v || cells[2].f || '').trim() : '';
         if (!name || !aptRaw) continue;
         const aptNum = parseInt(aptRaw);
         if (isNaN(aptNum) || aptNum < 1 || aptNum > TOTAL_APTS) continue;
