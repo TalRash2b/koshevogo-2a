@@ -263,8 +263,8 @@ function updateTSZHStats() {
     if (qLabel) qLabel.textContent = `${s.attend} / ${TOTAL_APTS} (${s.quorumPercent}%)`;
     if (qVerdict) {
         qVerdict.textContent = s.hasQuorum
-            ? `✅ Кворум есть (нужно ≥ ${s.quorumNeeded})`
-            : `❌ Кворума нет (нужно ≥ ${s.quorumNeeded}, не хватает ${s.quorumNeeded - s.attend})`;
+            ? `✅ Кворум есть (нужно  ${s.quorumNeeded})`
+            : `❌ Кворума нет (нужно  ${s.quorumNeeded}, не хватает ${s.quorumNeeded - s.attend})`;
         qVerdict.className = 'tszh-verdict ' + (s.hasQuorum ? 'ok' : 'fail');
     }
 
