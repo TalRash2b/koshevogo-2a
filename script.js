@@ -275,7 +275,7 @@ function updateTSZHStats() {
     if (dLabel) dLabel.textContent = `${s.forAndAttend} / ${s.attend} (${s.decisionPercent}%)`;
     if (dVerdict) {
         dVerdict.textContent = s.hasDecision
-            ? `✅ Решение принято (нужно ≥ ${s.decisionNeeded} из ${s.attend})`
+            ? `✅ Решение принято (нужно  ${s.decisionNeeded} из ${s.attend})`
             : `❌ Решения нет (нужно ≥ ${s.decisionNeeded} из ${s.attend}, не хватает ${s.decisionNeeded - s.forAndAttend})`;
         dVerdict.className = 'tszh-verdict ' + (s.hasDecision ? 'ok' : 'fail');
     }
