@@ -2,8 +2,8 @@
    КОНФИГ
    ========================================================= */
 const SPREADSHEET_ID  = '15O63umHMD-ghB3CQ7iPPKKESqkEFLzzy3BgauZQOzMs';
-const SHEET_RESIDENTS = '';        // Пустая строка = первый лист (Form_Responses)
-const SHEET_TSZH      = 'TSZH';    // Имя листа с голосованием
+const SHEET_RESIDENTS = '';        // Первый лист (Form_Responses)
+const SHEET_TSZH      = 'TSZH';    // Лист с голосованием
 const TOTAL_APTS      = 88;
 
 let houseDatabase = {};
@@ -53,13 +53,11 @@ function parseData(jsonData) {
     if (!jsonData || !jsonData.table || !jsonData.table.rows) return;
     const rows = jsonData.table.rows;
 
-    // i = 1, так как первая строка (индекс 0) - это заголовки из Google Forms
     for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
         if (!row || !row.c) continue;
         const cells = row.c;
 
-        // Берем правильные колонки (B, C, D). Если значение форматированное (f), берем его, чтобы не потерять плюсы и нули.
         const name     = cells[1] ? String(cells[1].v || cells[1].f || '').trim() : '';
         const aptRaw   = cells[2] ? String(cells[2].v || cells[2].f || '').trim() : '';
         const phoneRaw = cells[3] ? String(cells[3].f || cells[3].v || '').trim() : '';
@@ -80,11 +78,9 @@ function parseData(jsonData) {
                 .map(formatPhone);
         }
 
-        // Если в ячейке одно имя, но несколько телефонов через запятую
         if (names.length === 1 && phones.length > 1) {
             houseDatabase[aptNum].push({ fio: names[0], phones });
         } else {
-            // Если имен несколько, сопоставляем по индексу
             names.forEach((n, index) => {
                 const phone = phones[index] || '';
                 houseDatabase[aptNum].push({ fio: n, phones: phone ? [phone] : [] });
@@ -112,7 +108,6 @@ function parseVotes(jsonData) {
     if (!jsonData || !jsonData.table || !jsonData.table.rows) return;
     const rows = jsonData.table.rows;
 
-    // Начинаем с 0, так как в TSZH может не быть заголовка или он парсится как NaN и отсеивается
     for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         if (!row || !row.c) continue;
@@ -135,7 +130,6 @@ function parseVotes(jsonData) {
         const prev = votesDatabase[aptNum];
         const prevParsedTime = prev ? parseSheetDate(prev.time) : 0;
 
-        // Если пришло новое голосование (или это первое) - перезаписываем
         if (!prev || parsedTime >= prevParsedTime) {
             votesDatabase[aptNum] = vote;
         }
@@ -150,7 +144,6 @@ function parseVoteAnswer(raw) {
     return null;
 }
 
-// Надежный парсинг дат Google Sheets
 function parseSheetDate(s) {
     if (!s) return 0;
     const m = String(s).match(/(\d{1,4})[.\-/](\d{1,2})[.\-/](\d{1,4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
@@ -247,10 +240,8 @@ function calculateTSZHStats() {
 
 function updateTSZHStats() {
     const s = calculateTSZHStats();
-    const block = document.getElementById('tszhStats');
-    if (!block) return;
-
-    // Обновляем цифры в легенде
+    
+    // === ОБНОВЛЕНИЕ ЛЕГЕНДЫ (безопасное) ===
     const legendFor = document.getElementById('legendVoteFor');
     const legendAgainst = document.getElementById('legendVoteAgainst');
     const legendAbstain = document.getElementById('legendVoteAbstain');
@@ -260,38 +251,34 @@ function updateTSZHStats() {
     if (legendAgainst) legendAgainst.textContent = `(${s.against})`;
     if (legendAbstain) legendAbstain.textContent = `(${s.abstain})`;
     if (legendAttend) legendAttend.textContent = `(${s.attend})`;
+
+    // === ОБНОВЛЕНИЕ ПОЛОС КВОРУМА И РЕШЕНИЯ ===
+    const block = document.getElementById('tszhStats');
+    if (!block) return;
 
     const qFill = block.querySelector('#quorumFill');
     const qLabel = block.querySelector('#quorumLabel');
     const qVerdict = block.querySelector('#quorumVerdict');
-    qFill.style.width = s.quorumPercent + '%';
-    qLabel.textContent = `${s.attend} / ${TOTAL_APTS} (${s.quorumPercent}%)`;
-    qVerdict.textContent = s.hasQuorum
-        ? `✅ Кворум есть (нужно ≥ ${s.quorumNeeded})`
-        : `❌ Кворума нет (нужно ≥ ${s.quorumNeeded}, не хватает ${s.quorumNeeded - s.attend})`;
-    qVerdict.className = 'tszh-verdict ' + (s.hasQuorum ? 'ok' : 'fail');
+    if (qFill) qFill.style.width = s.quorumPercent + '%';
+    if (qLabel) qLabel.textContent = `${s.attend} / ${TOTAL_APTS} (${s.quorumPercent}%)`;
+    if (qVerdict) {
+        qVerdict.textContent = s.hasQuorum
+            ? `✅ Кворум есть (нужно ≥ ${s.quorumNeeded})`
+            : `❌ Кворума нет (нужно ≥ ${s.quorumNeeded}, не хватает ${s.quorumNeeded - s.attend})`;
+        qVerdict.className = 'tszh-verdict ' + (s.hasQuorum ? 'ok' : 'fail');
+    }
 
     const dFill = block.querySelector('#decisionFill');
     const dLabel = block.querySelector('#decisionLabel');
     const dVerdict = block.querySelector('#decisionVerdict');
-    dFill.style.width = s.decisionPercent + '%';
-    dLabel.textContent = `${s.forAndAttend} / ${s.attend} (${s.decisionPercent}%)`;
-    dVerdict.textContent = s.hasDecision
-        ? `✅ Решение принято (нужно ≥ ${s.decisionNeeded} из ${s.attend})`
-        : `❌ Решения нет (нужно ≥ ${s.decisionNeeded} из ${s.attend}, не хватает ${s.decisionNeeded - s.forAndAttend})`;
-    dVerdict.className = 'tszh-verdict ' + (s.hasDecision ? 'ok' : 'fail');
-
-   // === ДОБАВЛЯЕМ ЭТОТ БЛОК ДЛЯ ОБНОВЛЕНИЯ ЛЕГЕНДЫ ===
-    const legendFor = document.getElementById('legendVoteFor');
-    const legendAgainst = document.getElementById('legendVoteAgainst');
-    const legendAbstain = document.getElementById('legendVoteAbstain');
-    const legendAttend = document.getElementById('legendAttendYes');
-
-    if (legendFor) legendFor.textContent = `(${s.forTSZH})`;
-    if (legendAgainst) legendAgainst.textContent = `(${s.against})`;
-    if (legendAbstain) legendAbstain.textContent = `(${s.abstain})`;
-    if (legendAttend) legendAttend.textContent = `(${s.attend})`;
-    // ===================================================
+    if (dFill) dFill.style.width = s.decisionPercent + '%';
+    if (dLabel) dLabel.textContent = `${s.forAndAttend} / ${s.attend} (${s.decisionPercent}%)`;
+    if (dVerdict) {
+        dVerdict.textContent = s.hasDecision
+            ? `✅ Решение принято (нужно ≥ ${s.decisionNeeded} из ${s.attend})`
+            : `❌ Решения нет (нужно ≥ ${s.decisionNeeded} из ${s.attend}, не хватает ${s.decisionNeeded - s.forAndAttend})`;
+        dVerdict.className = 'tszh-verdict ' + (s.hasDecision ? 'ok' : 'fail');
+    }
 }
 
 /* =========================================================
@@ -338,7 +325,6 @@ function buildEntrance(containerId, startApt, entranceNum) {
             let aptClass = 'apartment';
             if (empty) aptClass += ' empty';
 
-            // Включаем полоски, только если есть контакты и есть голос
             if (!empty && vote) {
                 if (vote.forTSZH === true) aptClass += ' vote-for';
                 else if (vote.forTSZH === false) aptClass += ' vote-against';
