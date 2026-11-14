@@ -250,10 +250,16 @@ function updateTSZHStats() {
     const block = document.getElementById('tszhStats');
     if (!block) return;
 
-    block.querySelector('#tszhVoteBreakdown').innerHTML =
-        `🟢 За: <b>${s.forTSZH}</b> &nbsp;|&nbsp; 🔴 Против: <b>${s.against}</b> &nbsp;|&nbsp; 🟡 Воздержались: <b>${s.abstain}</b> &nbsp;|&nbsp; ⚪ Не голосовали: <b>${s.notVoted}</b>`;
-    block.querySelector('#tszhAttendBreakdown').innerHTML =
-        `⬜ Придут: <b>${s.attend}</b> &nbsp;|&nbsp; ⚪ Не придут / не ответили: <b>${s.notAttend}</b>`;
+    // Обновляем цифры в легенде
+    const legendFor = document.getElementById('legendVoteFor');
+    const legendAgainst = document.getElementById('legendVoteAgainst');
+    const legendAbstain = document.getElementById('legendVoteAbstain');
+    const legendAttend = document.getElementById('legendAttendYes');
+
+    if (legendFor) legendFor.textContent = `(${s.forTSZH})`;
+    if (legendAgainst) legendAgainst.textContent = `(${s.against})`;
+    if (legendAbstain) legendAbstain.textContent = `(${s.abstain})`;
+    if (legendAttend) legendAttend.textContent = `(${s.attend})`;
 
     const qFill = block.querySelector('#quorumFill');
     const qLabel = block.querySelector('#quorumLabel');
