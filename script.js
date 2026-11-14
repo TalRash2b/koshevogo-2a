@@ -247,7 +247,7 @@ function updateTSZHStats() {
     const legendAbstain = document.getElementById('legendVoteAbstain');
     const legendAttend = document.getElementById('legendAttendYes');
 
-    if (legendFor) legendFor.textContent = `(${s.forTSZH})`;
+    if (legendFor) legendFor.textContent = `${s.forTSZH}`;
     if (legendAgainst) legendAgainst.textContent = `(${s.against})`;
     if (legendAbstain) legendAbstain.textContent = `(${s.abstain})`;
     if (legendAttend) legendAttend.textContent = `(${s.attend})`;
