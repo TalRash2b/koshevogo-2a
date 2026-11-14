@@ -429,27 +429,44 @@ header h1 { font-size: 1.8rem; color: var(--accent); }
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 14px;
-    margin: 15px auto;
-    padding: 10px 16px;
+    gap: 20px; /* Увеличили отступ между пунктами */
+    margin: 20px auto;
+    padding: 16px 24px; /* Сделали блок чуть больше */
     background: var(--panel-bg);
-    border-radius: 8px;
-    border: 1px solid #475569;
-    max-width: 700px;
-    font-size: 0.85rem;
-    color: var(--text-muted);
+    border-radius: 12px;
+    border: 2px solid #475569;
+    max-width: 800px; /* Чуть шире */
+    font-size: 1rem; /* Увеличили шрифт */
+    color: var(--text-main); /* Сделали текст ярче (было text-muted) */
+    font-weight: 500;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); /* Легкая тень для объема */
 }
-.tszh-legend span { display: flex; align-items: center; gap: 6px; }
+
+.legend-item { 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+}
+
 .legend-dot { 
     display: inline-block; 
     width: 6px; 
-    height: 16px; 
-    border-radius: 0; /* Убираем скругление, чтобы это была четкая полоска */
+    height: 18px; /* Полоски стали еще чуть выше */
+    border-radius: 0; 
+    flex-shrink: 0;
 }
+
 .legend-dot.vote-for { background: #22c55e; }
 .legend-dot.vote-against { background: #ef4444; }
 .legend-dot.vote-abstain { background: #eab308; }
 .legend-dot.attend-yes { background: #cbd5e1; }
+
+.legend-count {
+    font-weight: 700; /* Жирные цифры */
+    color: var(--accent); /* Яркий голубой цвет (или можно #f8fafc для белого) */
+    margin-left: 4px;
+    font-size: 1.05rem;
+}
 
 /* ===== Статистика ТСЖ ===== */
 .tszh-stats {
