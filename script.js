@@ -325,7 +325,8 @@ function buildEntrance(containerId, startApt, entranceNum) {
             let aptClass = 'apartment';
             if (empty) aptClass += ' empty';
 
-            if (!empty && vote) {
+            // Полоски рисуем ВСЕГДА, если есть голос, даже если нет контактов
+            if (vote) {
                 if (vote.forTSZH === true) aptClass += ' vote-for';
                 else if (vote.forTSZH === false) aptClass += ' vote-against';
                 else if (vote.forTSZH === 'abstain') aptClass += ' vote-abstain';
