@@ -248,9 +248,9 @@ function updateTSZHStats() {
     const legendAttend = document.getElementById('legendAttendYes');
 
     if (legendFor) legendFor.textContent = `${s.forTSZH}`;
-    if (legendAgainst) legendAgainst.textContent = `(${s.against})`;
-    if (legendAbstain) legendAbstain.textContent = `(${s.abstain})`;
-    if (legendAttend) legendAttend.textContent = `(${s.attend})`;
+    if (legendAgainst) legendAgainst.textContent = `${s.against}`;
+    if (legendAbstain) legendAbstain.textContent = `${s.abstain}`;
+    if (legendAttend) legendAttend.textContent = `${s.attend}`;
 
     // === ОБНОВЛЕНИЕ ПОЛОС КВОРУМА И РЕШЕНИЯ ===
     const block = document.getElementById('tszhStats');
