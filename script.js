@@ -461,9 +461,7 @@ function buildEntrance(containerId, startApt, entranceNum) {
 function showInfo(aptNum, floor, residents) {
     const entranceNum = aptNum <= 44 ? 1 : 2;
     document.getElementById('panelAptNum').textContent = `Квартира №${aptNum}`;
-    const aptData = APT_DATA[aptNum];
-    const extraInfo = aptData ? ` • Доля: ${aptData.share}% (${aptData.area} м²)` : '';
-    document.getElementById('panelAptMeta').textContent = `Этаж ${floor}, Подъезд ${entranceNum}${extraInfo}`;
+    document.getElementById('panelAptMeta').textContent = `Этаж ${floor}, Подъезд ${entranceNum}`;
 
     const container = document.getElementById('residentsContainer');
     container.innerHTML = '';
@@ -509,6 +507,9 @@ function showInfo(aptNum, floor, residents) {
     const voteBlock = document.createElement('div');
     voteBlock.className = 'vote-block';
 
+    const aptData = APT_DATA[aptNum];
+    const shareText = aptData ? `<div class="vote-share">📊 Доля: <b>${aptData.share}%</b> (${aptData.area} м²)</div>` : '';
+
     if (vote) {
         let pText, pIcon, pClass;
         if (vote.forTSZH === true)          { pText = 'ЗА создание ТСЖ';         pIcon = '✅'; pClass = 'vote-for'; }
@@ -522,12 +523,15 @@ function showInfo(aptNum, floor, residents) {
         else                                { aText = 'Явка не подтверждена';              aIcon = '⚪'; aClass = 'attend-none'; }
 
         voteBlock.innerHTML = `
+            voteBlock.innerHTML = `
             <div class="vote-title">🗳️ Голосование по ТСЖ</div>
+            ${shareText}
             <div class="vote-line ${pClass}"><span class="vote-icon">${pIcon}</span><span>${pText}</span></div>
             <div class="vote-line ${aClass}"><span class="vote-icon">${aIcon}</span><span>${aText}</span></div>`;
     } else {
         voteBlock.innerHTML = `
             <div class="vote-title">🗳️ Голосование по ТСЖ</div>
+            ${shareText}
             <div class="vote-line vote-none"><span class="vote-icon">⚪</span><span>Жильцы не голосовали</span></div>`;
     }
     container.appendChild(voteBlock);
