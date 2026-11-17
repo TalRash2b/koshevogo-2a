@@ -55,16 +55,39 @@
 </div>
 
 <div class="tszh-stats" id="tszhStats">
-    <div class="tszh-block">
-        <div class="tszh-block-title">Кворум (нужно 2/3 от 88)</div>
-        <div class="tszh-bar">
-            <div class="tszh-fill" id="quorumFill" style="width: 0%;"></div>
-            <span class="tszh-bar-label" id="quorumLabel">0 / 88 (0%)</span>
-        </div>
-        <div class="tszh-verdict" id="quorumVerdict">—</div>
+    <h2>🗳️ Голосование по ТСЖ</h2>
+    
+    <!-- Легенда (оставляем как есть) -->
+    <div class="tszh-legend" style="margin-bottom: 20px;">
+        <span class="legend-item"><span class="legend-dot vote-for"></span> За ТСЖ <span id="legendVoteFor" class="legend-count">(0)</span></span>
+        <span class="legend-item"><span class="legend-dot vote-against"></span> Против <span id="legendVoteAgainst" class="legend-count">(0)</span></span>
+        <span class="legend-item"><span class="legend-dot vote-abstain"></span> Воздержался <span id="legendVoteAbstain" class="legend-count">(0)</span></span>
+        <span class="legend-item"><span class="legend-dot attend-yes"></span> Участвует <span id="legendAttendYes" class="legend-count">(0)</span></span>
     </div>
+
+    <!-- 1. Кворум по квартирам -->
     <div class="tszh-block">
-        <div class="tszh-block-title">Решение ТСЖ (нужно 2/3 от кворума)</div>
+        <div class="tszh-block-title">1. Кворум по количеству квартир (нужно ≥ 59)</div>
+        <div class="tszh-bar">
+            <div class="tszh-fill" id="quorumAptFill" style="width: 0%; background: linear-gradient(90deg, #38bdf8, #0284c7);"></div>
+            <span class="tszh-bar-label" id="quorumAptLabel">0 / 59 (0%)</span>
+        </div>
+        <div class="tszh-verdict" id="quorumAptVerdict">—</div>
+    </div>
+
+    <!-- 2. Кворум по долям -->
+    <div class="tszh-block">
+        <div class="tszh-block-title">2. Кворум по долям (нужно ≥ 66.67%)</div>
+        <div class="tszh-bar">
+            <div class="tszh-fill" id="quorumShareFill" style="width: 0%; background: linear-gradient(90deg, #a855f7, #7e22ce);"></div>
+            <span class="tszh-bar-label" id="quorumShareLabel">0% / 66.67% (0%)</span>
+        </div>
+        <div class="tszh-verdict" id="quorumShareVerdict">—</div>
+    </div>
+
+    <!-- 3. Решение ТСЖ -->
+    <div class="tszh-block">
+        <div class="tszh-block-title">3. Решение ТСЖ (нужно > 50% от кворума)</div>
         <div class="tszh-bar">
             <div class="tszh-fill" id="decisionFill" style="width: 0%;"></div>
             <span class="tszh-bar-label" id="decisionLabel">0 / 0 (0%)</span>
