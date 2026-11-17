@@ -9,6 +9,55 @@ const TOTAL_APTS      = 88;
 let houseDatabase = {};
 let votesDatabase = {};
 
+// Точные доли каждой квартиры (в процентах) из официальной таблицы
+// Объект с точными долями и площадями каждой квартиры
+const APT_DATA = {
+    1:  { share: 1.183, area: 65.61 },  2:  { share: 0.810, area: 44.95 },
+    3:  { share: 1.120, area: 62.11 },  4:  { share: 1.438, area: 79.77 },
+    5:  { share: 1.183, area: 65.61 },  6:  { share: 0.810, area: 44.95 },
+    7:  { share: 1.120, area: 62.11 },  8:  { share: 1.438, area: 79.77 },
+    9:  { share: 1.183, area: 65.61 },  10: { share: 0.810, area: 44.95 },
+    11: { share: 1.120, area: 62.11 },  12: { share: 1.438, area: 79.77 },
+    13: { share: 1.183, area: 65.61 },  14: { share: 0.810, area: 44.95 },
+    15: { share: 1.120, area: 62.11 },  16: { share: 1.438, area: 79.77 },
+    17: { share: 1.178, area: 65.35 },  18: { share: 0.808, area: 44.81 },
+    19: { share: 1.117, area: 61.97 },  20: { share: 1.438, area: 79.77 },
+    21: { share: 1.178, area: 65.35 },  22: { share: 0.808, area: 44.81 },
+    23: { share: 1.117, area: 61.97 },  24: { share: 1.438, area: 79.77 },
+    25: { share: 1.178, area: 65.35 },  26: { share: 0.808, area: 44.81 },
+    27: { share: 1.117, area: 61.97 },  28: { share: 1.438, area: 79.77 },
+    29: { share: 1.178, area: 65.35 },  30: { share: 0.808, area: 44.81 },
+    31: { share: 1.117, area: 61.97 },  32: { share: 1.438, area: 79.77 },
+    33: { share: 1.178, area: 65.35 },  34: { share: 0.808, area: 44.81 },
+    35: { share: 1.117, area: 61.97 },  36: { share: 1.438, area: 79.77 },
+    37: { share: 1.178, area: 65.35 },  38: { share: 0.808, area: 44.81 },
+    39: { share: 1.117, area: 61.97 },  40: { share: 1.438, area: 79.77 },
+    41: { share: 1.178, area: 65.35 },  42: { share: 0.808, area: 44.81 },
+    43: { share: 1.117, area: 61.97 },  44: { share: 1.438, area: 79.77 },
+    45: { share: 1.438, area: 79.77 },  46: { share: 1.120, area: 62.11 },
+    47: { share: 0.810, area: 44.95 },  48: { share: 1.183, area: 65.61 },
+    49: { share: 1.438, area: 79.77 },  50: { share: 1.120, area: 62.11 },
+    51: { share: 0.810, area: 44.95 },  52: { share: 1.183, area: 65.61 },
+    53: { share: 1.438, area: 79.77 },  54: { share: 1.120, area: 62.11 },
+    55: { share: 0.810, area: 44.95 },  56: { share: 1.183, area: 65.61 },
+    57: { share: 1.438, area: 79.77 },  58: { share: 1.120, area: 62.11 },
+    59: { share: 0.810, area: 44.95 },  60: { share: 1.183, area: 65.61 },
+    61: { share: 1.438, area: 79.77 },  62: { share: 1.117, area: 61.97 },
+    63: { share: 0.808, area: 44.81 },  64: { share: 1.178, area: 65.35 },
+    65: { share: 1.438, area: 79.77 },  66: { share: 1.117, area: 61.97 },
+    67: { share: 0.808, area: 44.81 },  68: { share: 1.178, area: 65.35 },
+    69: { share: 1.438, area: 79.77 },  70: { share: 1.117, area: 61.97 },
+    71: { share: 0.808, area: 44.81 },  72: { share: 1.178, area: 65.35 },
+    73: { share: 1.438, area: 79.77 },  74: { share: 1.117, area: 61.97 },
+    75: { share: 0.808, area: 44.81 },  76: { share: 1.178, area: 65.35 },
+    77: { share: 1.438, area: 79.77 },  78: { share: 1.117, area: 61.97 },
+    79: { share: 0.808, area: 44.81 },  80: { share: 1.178, area: 65.35 },
+    81: { share: 1.438, area: 79.77 },  82: { share: 1.117, area: 61.97 },
+    83: { share: 0.808, area: 44.81 },  84: { share: 1.178, area: 65.35 },
+    85: { share: 1.438, area: 79.77 },  86: { share: 1.117, area: 61.97 },
+    87: { share: 0.808, area: 44.81 },  88: { share: 1.178, area: 65.35 }
+};
+
 /* =========================================================
    ЗАГРУЗКА
    ========================================================= */
@@ -212,72 +261,124 @@ function updateTabSlider() {
    СТАТИСТИКА ТСЖ
    ========================================================= */
 function calculateTSZHStats() {
-    let forTSZH = 0, against = 0, abstain = 0, attend = 0, forAndAttend = 0;
+    let forTSZH_Total = 0; // Все кто "За" (для легенды)
+    let against_Total = 0;
+    let abstain_Total = 0;
+    
+    let attendCount = 0;       // Количество квартир в кворуме
+    let attendShares = 0;      // Сумма долей в кворуме
+    let forTSZH_Quorum = 0;    // "За" только среди тех, кто в кворуме
+
     for (const apt in votesDatabase) {
         const v = votesDatabase[apt];
-        if (v.forTSZH === true) forTSZH++;
-        else if (v.forTSZH === false) against++;
-        else if (v.forTSZH === 'abstain') abstain++;
+        const aptNum = parseInt(apt, 10);
+        
+        // Считаем общее настроение (для легенды)
+        if (v.forTSZH === true) forTSZH_Total++;
+        else if (v.forTSZH === false) against_Total++;
+        else if (v.forTSZH === 'abstain') abstain_Total++;
 
+        // Считаем кворум и голоса в нем
         if (v.attend === true) {
-            attend++;
-            if (v.forTSZH === true) forAndAttend++;
+            attendCount++;
+            attendShares += (APT_DATA[aptNum] ? APT_DATA[aptNum].share : 0);
+            
+            if (v.forTSZH === true) forTSZH_Quorum++;
         }
     }
-    const quorumNeeded = Math.ceil(TOTAL_APTS * 2 / 3);
-    const decisionNeeded = attend > 0 ? Math.ceil(attend * 2 / 3) : 0;
+
+    const totalApts = 88;
+    const requiredApts = 59; // 2/3 от 88
+    const requiredShares = 66.667; // 2/3 от 100%
+
+    // Кворум есть, если выполнены ОБА условия
+    const hasQuorum = (attendCount >= requiredApts) && (attendShares >= requiredShares);
+
+    // Решение есть, если кворум собран И "За" больше половины от пришедших
+    const decisionNeeded = Math.floor(attendCount / 2) + 1;
+    const hasDecision = hasQuorum && (forTSZH_Quorum >= decisionNeeded);
+
     return {
-        forTSZH, against, abstain, attend, forAndAttend,
-        notVoted: TOTAL_APTS - (forTSZH + against + abstain),
-        notAttend: TOTAL_APTS - attend,
-        quorumNeeded, decisionNeeded,
-        hasQuorum: attend >= quorumNeeded,
-        hasDecision: attend > 0 && forAndAttend >= decisionNeeded,
-        quorumPercent: Math.round(attend / TOTAL_APTS * 100),
-        decisionPercent: attend > 0 ? Math.round(forAndAttend / attend * 100) : 0,
+        forTSZH_Total, against_Total, abstain_Total,
+        attendCount, attendShares, forTSZH_Quorum,
+        requiredApts, requiredShares,
+        hasQuorum, hasDecision,
+        
+        // Проценты для полосок
+        quorumAptPercent: Math.min(100, Math.round((attendCount / requiredApts) * 100)),
+        quorumSharePercent: Math.min(100, Math.round((attendShares / requiredShares) * 100)),
+        decisionPercent: attendCount > 0 ? Math.round((forTSZH_Quorum / attendCount) * 100) : 0
     };
 }
 
 function updateTSZHStats() {
     const s = calculateTSZHStats();
     
-    // === ОБНОВЛЕНИЕ ЛЕГЕНДЫ (безопасное) ===
-    const legendFor = document.getElementById('legendVoteFor');
-    const legendAgainst = document.getElementById('legendVoteAgainst');
-    const legendAbstain = document.getElementById('legendVoteAbstain');
-    const legendAttend = document.getElementById('legendAttendYes');
+    // Обновляем легенду (общее настроение)
+    if (document.getElementById('legendVoteFor')) document.getElementById('legendVoteFor').textContent = `(${s.forTSZH_Total})`;
+    if (document.getElementById('legendVoteAgainst')) document.getElementById('legendVoteAgainst').textContent = `(${s.against_Total})`;
+    if (document.getElementById('legendVoteAbstain')) document.getElementById('legendVoteAbstain').textContent = `(${s.abstain_Total})`;
+    if (document.getElementById('legendAttendYes')) document.getElementById('legendAttendYes').textContent = `(${s.attendCount})`;
 
-    if (legendFor) legendFor.textContent = `${s.forTSZH}`;
-    if (legendAgainst) legendAgainst.textContent = `${s.against}`;
-    if (legendAbstain) legendAbstain.textContent = `${s.abstain}`;
-    if (legendAttend) legendAttend.textContent = `${s.attend}`;
-
-    // === ОБНОВЛЕНИЕ ПОЛОС КВОРУМА И РЕШЕНИЯ ===
     const block = document.getElementById('tszhStats');
     if (!block) return;
 
-    const qFill = block.querySelector('#quorumFill');
-    const qLabel = block.querySelector('#quorumLabel');
-    const qVerdict = block.querySelector('#quorumVerdict');
-    if (qFill) qFill.style.width = s.quorumPercent + '%';
-    if (qLabel) qLabel.textContent = `${s.attend} / ${TOTAL_APTS} (${s.quorumPercent}%)`;
-    if (qVerdict) {
-        qVerdict.textContent = s.hasQuorum
-            ? `✅ Кворум есть (нужно  ${s.quorumNeeded})`
-            : `❌ Кворума нет (нужно  ${s.quorumNeeded}, не хватает ${s.quorumNeeded - s.attend})`;
-        qVerdict.className = 'tszh-verdict ' + (s.hasQuorum ? 'ok' : 'fail');
+    // --- 1. Кворум по квартирам ---
+    const qAptFill = block.querySelector('#quorumAptFill');
+    const qAptLabel = block.querySelector('#quorumAptLabel');
+    const qAptVerdict = block.querySelector('#quorumAptVerdict');
+    
+    qAptFill.style.width = s.quorumAptPercent + '%';
+    qAptLabel.textContent = `${s.attendCount} / ${s.requiredApts} (${s.quorumAptPercent}%)`;
+    
+    if (s.attendCount >= s.requiredApts) {
+        qAptVerdict.textContent = `✅ Количество квартир достаточно`;
+        qAptVerdict.className = 'tszh-verdict ok';
+    } else {
+        qAptVerdict.textContent = `❌ Не хватает ${s.requiredApts - s.attendCount} квартир`;
+        qAptVerdict.className = 'tszh-verdict fail';
     }
 
+    // --- 2. Кворум по долям ---
+    const qShareFill = block.querySelector('#quorumShareFill');
+    const qShareLabel = block.querySelector('#quorumShareLabel');
+    const qShareVerdict = block.querySelector('#quorumShareVerdict');
+    
+    qShareFill.style.width = s.quorumSharePercent + '%';
+    qShareLabel.textContent = `${s.attendShares.toFixed(2)}% / 66.67% (${s.quorumSharePercent}%)`;
+    
+    if (s.attendShares >= s.requiredShares) {
+        qShareVerdict.textContent = `✅ Долей достаточно`;
+        qShareVerdict.className = 'tszh-verdict ok';
+    } else {
+        qShareVerdict.textContent = `❌ Не хватает ${(s.requiredShares - s.attendShares).toFixed(2)}% долей`;
+        qShareVerdict.className = 'tszh-verdict fail';
+    }
+
+    // --- 3. Решение ТСЖ ---
     const dFill = block.querySelector('#decisionFill');
     const dLabel = block.querySelector('#decisionLabel');
     const dVerdict = block.querySelector('#decisionVerdict');
-    if (dFill) dFill.style.width = s.decisionPercent + '%';
-    if (dLabel) dLabel.textContent = `${s.forAndAttend} / ${s.attend} (${s.decisionPercent}%)`;
-    if (dVerdict) {
-        dVerdict.textContent = s.hasDecision
-            ? `✅ Решение принято (нужно  ${s.decisionNeeded} из ${s.attend})`
-            : `❌ Решения нет (нужно ≥ ${s.decisionNeeded} из ${s.attend}, не хватает ${s.decisionNeeded - s.forAndAttend})`;
-        dVerdict.className = 'tszh-verdict ' + (s.hasDecision ? 'ok' : 'fail');
+    
+    dFill.style.width = s.decisionPercent + '%';
+    dLabel.textContent = `${s.forTSZH_Quorum} / ${s.attendCount} (${s.decisionPercent}%)`;
+    
+    if (!s.hasQuorum) {
+        // Если кворума нет, полоска серая, решение заблокировано
+        dFill.style.background = '#475569'; // Серый цвет
+        dVerdict.textContent = `⏳ Кворум не достигнут. Голосование заблокировано.`;
+        dVerdict.className = 'tszh-verdict fail'; // Или можно сделать специальный серый класс
+        dVerdict.style.color = '#94a3b8';
+    } else {
+        dFill.style.background = 'linear-gradient(90deg, #38bdf8, #0284c7)'; // Возвращаем синий
+        dVerdict.style.color = ''; // Сбрасываем кастомный цвет
+        if (s.hasDecision) {
+            dVerdict.textContent = `✅ Решение принято`;
+            dVerdict.className = 'tszh-verdict ok';
+        } else {
+            dVerdict.textContent = `❌ Решение не принято (нужно > 50% от кворума)`;
+            dVerdict.className = 'tszh-verdict fail';
+        }
     }
 }
 
@@ -355,7 +456,9 @@ function buildEntrance(containerId, startApt, entranceNum) {
 function showInfo(aptNum, floor, residents) {
     const entranceNum = aptNum <= 44 ? 1 : 2;
     document.getElementById('panelAptNum').textContent = `Квартира №${aptNum}`;
-    document.getElementById('panelAptMeta').textContent = `Этаж ${floor}, Подъезд ${entranceNum}`;
+    const aptData = APT_DATA[aptNum];
+   const extraInfo = aptData ? ` • Доля: ${aptData.share}% (${aptData.area} м²)` : '';
+   document.getElementById('panelAptMeta').textContent = `Этаж ${floor}, Подъезд ${entranceNum}${extraInfo}`;
 
     const container = document.getElementById('residentsContainer');
     container.innerHTML = '';
