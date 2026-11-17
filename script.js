@@ -523,7 +523,6 @@ function showInfo(aptNum, floor, residents) {
         else                                { aText = 'Явка не подтверждена';              aIcon = '⚪'; aClass = 'attend-none'; }
 
         voteBlock.innerHTML = `
-            voteBlock.innerHTML = `
             <div class="vote-title">🗳️ Голосование по ТСЖ</div>
             ${shareText}
             <div class="vote-line ${pClass}"><span class="vote-icon">${pIcon}</span><span>${pText}</span></div>
