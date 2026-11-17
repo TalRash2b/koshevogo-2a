@@ -457,8 +457,8 @@ function showInfo(aptNum, floor, residents) {
     const entranceNum = aptNum <= 44 ? 1 : 2;
     document.getElementById('panelAptNum').textContent = `Квартира №${aptNum}`;
     const aptData = APT_DATA[aptNum];
-   const extraInfo = aptData ? ` • Доля: ${aptData.share}% (${aptData.area} м²)` : '';
-   document.getElementById('panelAptMeta').textContent = `Этаж ${floor}, Подъезд ${entranceNum}${extraInfo}`;
+    const extraInfo = aptData ? ` • Доля: ${aptData.share}% (${aptData.area} м²)` : '';
+    document.getElementById('panelAptMeta').textContent = `Этаж ${floor}, Подъезд ${entranceNum}${extraInfo}`;
 
     const container = document.getElementById('residentsContainer');
     container.innerHTML = '';
