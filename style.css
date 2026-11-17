@@ -515,3 +515,11 @@ header h1 { font-size: 1.8rem; color: var(--accent); }
 .tszh-verdict { margin-top: 8px; font-size: 0.9rem; font-weight: 600; text-align: center; }
 .tszh-verdict.ok { color: #22c55e; }
 .tszh-verdict.fail { color: #ef4444; }
+
+.vote-share {
+    font-size: 0.95rem;
+    color: #cbd5e1;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #475569;
+}
