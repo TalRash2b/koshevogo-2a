@@ -264,6 +264,7 @@ function calculateTSZHStats() {
     let forTSZH_Total = 0; // Все кто "За" (для легенды)
     let against_Total = 0;
     let abstain_Total = 0;
+    let attendTotal = 0; // Все, кто участвует (для легенды)
     
     let attendCount = 0;       // Количество квартир в кворуме
     let attendShares = 0;      // Сумма долей в кворуме
@@ -273,16 +274,19 @@ function calculateTSZHStats() {
         const v = votesDatabase[apt];
         const aptNum = parseInt(apt, 10);
         
-        // Считаем общее настроение (для легенды)
+        // 1. Считаем общее настроение (для легенды)
         if (v.forTSZH === true) forTSZH_Total++;
         else if (v.forTSZH === false) against_Total++;
         else if (v.forTSZH === 'abstain') abstain_Total++;
+        
+        if (v.attend === true) attendTotal++;
 
-        // Считаем кворум и голоса в нем
+        // 2. Считаем кворум и голоса внутри него
         if (v.attend === true) {
             attendCount++;
             attendShares += (APT_DATA[aptNum] ? APT_DATA[aptNum].share : 0);
             
+            // Голос "За" учитывается в решении, только если человек в кворуме
             if (v.forTSZH === true) forTSZH_Quorum++;
         }
     }
@@ -294,12 +298,12 @@ function calculateTSZHStats() {
     // Кворум есть, если выполнены ОБА условия
     const hasQuorum = (attendCount >= requiredApts) && (attendShares >= requiredShares);
 
-    // Решение есть, если кворум собран И "За" больше половины от пришедших
-    const decisionNeeded = Math.floor(attendCount / 2) + 1;
+    // Решение есть, если кворум собран И "За" больше 2/3 от пришедших
+    const decisionNeeded = Math.ceil(attendCount * 2 / 3);
     const hasDecision = hasQuorum && (forTSZH_Quorum >= decisionNeeded);
 
     return {
-        forTSZH_Total, against_Total, abstain_Total,
+        forTSZH_Total, against_Total, abstain_Total, attendTotal,
         attendCount, attendShares, forTSZH_Quorum,
         requiredApts, requiredShares,
         hasQuorum, hasDecision,
@@ -314,11 +318,11 @@ function calculateTSZHStats() {
 function updateTSZHStats() {
     const s = calculateTSZHStats();
     
-    // Обновляем легенду (общее настроение)
+    // Обновляем легенду (теперь "За" и "Участвует" считаются раздельно)
     if (document.getElementById('legendVoteFor')) document.getElementById('legendVoteFor').textContent = `(${s.forTSZH_Total})`;
     if (document.getElementById('legendVoteAgainst')) document.getElementById('legendVoteAgainst').textContent = `(${s.against_Total})`;
     if (document.getElementById('legendVoteAbstain')) document.getElementById('legendVoteAbstain').textContent = `(${s.abstain_Total})`;
-    if (document.getElementById('legendAttendYes')) document.getElementById('legendAttendYes').textContent = `(${s.attendCount})`;
+    if (document.getElementById('legendAttendYes')) document.getElementById('legendAttendYes').textContent = `(${s.attendTotal})`;
 
     const block = document.getElementById('tszhStats');
     if (!block) return;
@@ -339,12 +343,13 @@ function updateTSZHStats() {
         qAptVerdict.className = 'tszh-verdict fail';
     }
 
-    // --- 2. Кворум по долям ---
+    // --- 2. Кворум по долям (Теперь синяя, как первая) ---
     const qShareFill = block.querySelector('#quorumShareFill');
     const qShareLabel = block.querySelector('#quorumShareLabel');
     const qShareVerdict = block.querySelector('#quorumShareVerdict');
     
     qShareFill.style.width = s.quorumSharePercent + '%';
+    qShareFill.style.background = 'linear-gradient(90deg, #38bdf8, #0284c7)'; // Синий цвет
     qShareLabel.textContent = `${s.attendShares.toFixed(2)}% / 66.67% (${s.quorumSharePercent}%)`;
     
     if (s.attendShares >= s.requiredShares) {
@@ -364,10 +369,10 @@ function updateTSZHStats() {
     dLabel.textContent = `${s.forTSZH_Quorum} / ${s.attendCount} (${s.decisionPercent}%)`;
     
     if (!s.hasQuorum) {
-        // Если кворума нет, полоска серая, решение заблокировано
+        // Если кворума нет, полоска серая, текст просто "Кворум не достигнут"
         dFill.style.background = '#475569'; // Серый цвет
-        dVerdict.textContent = `⏳ Кворум не достигнут. Голосование заблокировано.`;
-        dVerdict.className = 'tszh-verdict fail'; // Или можно сделать специальный серый класс
+        dVerdict.textContent = `⏳ Кворум не достигнут`;
+        dVerdict.className = 'tszh-verdict fail';
         dVerdict.style.color = '#94a3b8';
     } else {
         dFill.style.background = 'linear-gradient(90deg, #38bdf8, #0284c7)'; // Возвращаем синий
@@ -376,7 +381,7 @@ function updateTSZHStats() {
             dVerdict.textContent = `✅ Решение принято`;
             dVerdict.className = 'tszh-verdict ok';
         } else {
-            dVerdict.textContent = `❌ Решение не принято (нужно > 50% от кворума)`;
+            dVerdict.textContent = `❌ Решение не принято (нужно > 2/3 от кворума)`;
             dVerdict.className = 'tszh-verdict fail';
         }
     }
